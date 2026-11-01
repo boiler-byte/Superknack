@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#082520">
+  <meta name="description" content="Super-Knack – ein animiertes Kartenspiel gegen den Computer mit drei Schwierigkeitsgraden.">
+  <title>Super-Knack · Das Kartenspiel</title>
+  <style>
+    :root {
+      --bg:#061b1b;--deep:#051513;--felt:#10443d;--felt2:#14584b;
+      --gold:#e9bf77;--gold-soft:#f7dba4;--ivory:#faf5e9;--muted:#afc4ba;
+      --red:#b72f4a;--black:#1c2730;--line:rgba(243,220,172,.2);
+      --shadow:0 24px 65px rgba(0,0,0,.32);
+      color-scheme:dark;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ivory)}
+    body{overflow-x:hidden}
+    button{font:inherit;cursor:pointer}
+    button:disabled{cursor:not-allowed}
+    button:focus-visible,.card:focus-visible{outline:3px solid var(--gold-soft);outline-offset:4px}
+    .is-hidden{display:none!important}
+    .eyebrow{font-size:11px;font-weight:850;letter-spacing:.23em;text-transform:uppercase;color:var(--gold)}
+    .muted{color:var(--muted)}
+    .soft-button{border:1px solid rgba(236,218,174,.23);background:rgba(255,255,255,.055);border-radius:14px;padding:12px 18px;color:var(--ivory);font-weight:750;transition:background .2s,transform .2s,border-color .2s}
+    .soft-button:hover:not(:disabled){background:rgba(255,255,255,.11);border-color:rgba(236,218,174,.5);transform:translateY(-1px)}
+    .gold-button{border:1px solid #ffe0a5;border-radius:14px;background:linear-gradient(125deg,#f9df9c,#d7a862);color:#252015;font-weight:850;box-shadow:0 7px 24px rgba(209,153,73,.22);padding:15px 22px;transition:transform .2s,filter .2s}
+    .gold-button:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-2px)}
+    .gold-button:disabled,.soft-button:disabled{opacity:.38;box-shadow:none;transform:none}
+    .tiny-icon{font-size:17px;line-height:1}
+
+    /* START SCREEN */
+    .start-screen{position:relative;min-height:100dvh;overflow:hidden;background:radial-gradient(ellipse 95% 70% at 78% 49%,#1d6250 0%,#0f3731 49%,#09231f 80%,#061916 100%)}
+    .start-screen:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.15;background-image:repeating-linear-gradient(50deg,transparent 0px,transparent 3px,rgba(255,255,255,.08) 4px,transparent 5px);mask-image:radial-gradient(circle at 75% 45%,black,transparent 85%)}
+    .start-screen:after{content:"";position:absolute;inset:24px;border:1px solid rgba(231,197,126,.16);border-radius:30px;pointer-events:none}
+    .start-content{position:relative;max-width:1260px;margin:0 auto;padding:44px 48px 38px;z-index:2;min-height:100dvh;display:flex;flex-direction:column}
+    .start-top{display:flex;justify-content:space-between;align-items:center;gap:16px}
+    .brand{display:flex;align-items:center;gap:12px;color:var(--ivory);font-size:14px;letter-spacing:.12em;font-weight:900}
+    .brand-symbol{display:grid;place-items:center;border-radius:12px;width:40px;height:42px;border:1px solid rgba(240,204,139,.5);color:var(--gold);background:linear-gradient(140deg,rgba(245,208,142,.15),rgba(255,255,255,.02));font:25px Georgia,serif}
+    .start-body{flex:1;display:grid;grid-template-columns:minmax(0,1.07fr) minmax(360px,.93fr);align-items:center;gap:25px;padding:12px 0}
+    .intro{position:relative;z-index:2}
+    .intro-title{font-family:Georgia,"Times New Roman",serif;font-size:clamp(70px,9.3vw,142px);letter-spacing:-.085em;font-weight:800;line-height:.93;margin:21px 0 22px;color:#fdf6df;text-shadow:0 4px 27px rgba(0,0,0,.12)}
+    .intro-title span{display:block;font:850 clamp(18px,2.6vw,33px) Inter,ui-sans-serif,system-ui,sans-serif;letter-spacing:.45em;color:var(--gold);margin-left:8px;margin-bottom:4px}
+    .intro-lead{font-size:clamp(16px,1.7vw,20px);line-height:1.55;color:#d2e2d8;max-width:500px;margin:0 0 36px}
+    .intro-lead strong{color:#fff2cf}
+    .difficulty-heading{font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:850;color:#d8dfd6;margin-bottom:12px}
+    .difficulty-list{display:grid;gap:11px;max-width:535px}
+    .difficulty-card{width:100%;display:flex;align-items:center;gap:17px;text-align:left;border:1px solid rgba(246,219,160,.19);border-radius:17px;padding:14px 17px;background:linear-gradient(110deg,rgba(10,42,39,.93),rgba(28,76,66,.5));color:var(--ivory);backdrop-filter:blur(9px);transition:border-color .22s,background .22s,transform .22s,box-shadow .22s}
+    .difficulty-card:hover{transform:translateX(6px);border-color:rgba(248,218,147,.76);background:linear-gradient(110deg,rgba(25,68,56,.98),rgba(34,88,73,.7));box-shadow:0 8px 26px rgba(0,0,0,.16)}
+    .difficulty-icon{width:49px;height:49px;flex:none;display:grid;place-items:center;border:1px solid rgba(255,255,255,.14);border-radius:14px;font-size:23px;background:rgba(255,255,255,.065)}
+    .difficulty-card[data-difficulty="easy"] .difficulty-icon{color:#b5dfb8}
+    .difficulty-card[data-difficulty="medium"] .difficulty-icon{color:#f6c87c}
+    .difficulty-card[data-difficulty="hard"] .difficulty-icon{color:#ffab8e}
+    .difficulty-text{display:grid;gap:3px;flex:1}
+    .difficulty-text strong{font-size:17px;letter-spacing:.015em}
+    .difficulty-text small{color:#adcac0;font-size:12px;line-height:1.4}
+    .difficulty-chevron{color:var(--gold);font-size:24px;transition:transform .2s}
+    .difficulty-card:hover .difficulty-chevron{transform:translateX(4px)}
+    .start-bottom{display:flex;justify-content:space-between;align-items:center;color:#a0c3b2;font-size:12px;letter-spacing:.04em;gap:15px}
+    .start-bottom b{color:var(--gold-soft);font-weight:800}
+    .hero-art{position:relative;height:585px;min-width:0;perspective:1100px;isolation:isolate}
+    .hero-halo{position:absolute;width:520px;height:520px;border-radius:50%;left:50%;top:47%;transform:translate(-50%,-50%);border:1px solid rgba(238,204,133,.2);box-shadow:0 0 0 52px rgba(225,206,151,.026),0 0 0 105px rgba(225,206,151,.019),inset 0 0 90px rgba(21,99,70,.21);background:radial-gradient(circle,rgba(230,192,112,.11),transparent 63%)}
+    .hero-halo:before,.hero-halo:after{content:"✦";position:absolute;color:var(--gold);text-shadow:0 0 14px rgba(245,212,153,.5)}
+    .hero-halo:before{font-size:27px;top:25px;right:97px}.hero-halo:after{font-size:15px;bottom:79px;left:40px}
+    .showcase-card{position:absolute;top:50%;left:50%;width:220px;height:316px;border-radius:19px;border:9px solid #f9f2df;background:linear-gradient(155deg,#fffcf2,#ecdfc8);box-shadow:0 32px 42px rgba(0,0,0,.37),inset 0 0 0 1px #dbceae;transform-style:preserve-3d;animation:floatCard 5s ease-in-out infinite}
+    .showcase-card .corner{position:absolute;top:15px;left:15px;display:grid;justify-items:center;gap:0;color:var(--red);font:bold 31px/1 Georgia,serif}
+    .showcase-card .corner small{font-size:25px}.showcase-card .center{display:grid;place-items:center;height:100%;font:131px Georgia,serif;color:var(--red);text-shadow:0 3px 0 rgba(74,8,20,.08)}
+    .showcase-card.back-one{transform:translate(-78%,-47%) rotate(-21deg);animation-name:floatLeft;z-index:1}.showcase-card.back-one .corner,.showcase-card.back-one .center{color:#252c39}
+    .showcase-card.back-two{transform:translate(-18%,-51%) rotate(16deg);animation-name:floatRight;z-index:2}.showcase-card.back-two .corner,.showcase-card.back-two .center{color:var(--red)}
+    .showcase-card.front{transform:translate(-52%,-47%) rotate(-3deg);z-index:3;animation-name:floatFront}
+    .showcase-ribbon{position:absolute;left:50%;top:82%;z-index:5;transform:translateX(-50%) rotate(-5deg);white-space:nowrap;font:900 13px Inter,system-ui,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#272012;padding:14px 24px;background:linear-gradient(105deg,#fee7ae,#deac64);border:2px solid #ffeac5;border-radius:6px;box-shadow:0 12px 26px rgba(0,0,0,.3)}
+    @keyframes floatLeft{0%,100%{transform:translate(-78%,-47%) rotate(-21deg)}50%{transform:translate(-78%,-50%) rotate(-24deg)}}
+    @keyframes floatRight{0%,100%{transform:translate(-18%,-51%) rotate(16deg)}50%{transform:translate(-16%,-56%) rotate(19deg)}}
+    @keyframes floatFront{0%,100%{transform:translate(-52%,-47%) rotate(-3deg)}50%{transform:translate(-52%,-52%) rotate(-1deg)}}
+    @media(min-width:1100px){.start-body{grid-template-columns:1.02fr .98fr}}
+
+    /* GAME SCREEN */
+    .game-screen{min-height:100dvh;padding:22px clamp(14px,3.1vw,48px) 26px;background:radial-gradient(ellipse 90% 80% at 51% 35%,#133c35 0%,#092520 62%,#051914 100%)}
+    .game-topbar{max-width:1490px;margin:0 auto 19px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+    .game-topbar .brand{font-size:13px}.game-topbar .brand-symbol{height:36px;width:36px;font-size:21px}
+    .game-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+    .game-topbar .soft-button{padding:10px 13px;font-size:12px;border-radius:11px}
+    .round-counter{background:rgba(255,255,255,.055);border:1px solid var(--line);padding:9px 14px;border-radius:20px;font-size:12px;font-weight:850;letter-spacing:.13em;color:#c9d9cf}
+    .round-counter span{color:var(--gold);font-size:15px;letter-spacing:0;margin-left:4px}
+    .game-layout{max-width:1490px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 298px;gap:19px;align-items:stretch}
+    .table-surface{position:relative;min-height:690px;border:2px solid rgba(215,174,102,.44);border-radius:clamp(28px,5vw,65px);background:radial-gradient(ellipse 67% 62% at 50% 52%,#1a6554 0%,#155044 52%,#103b33 100%);box-shadow:0 6px 0 #092820,0 10px 0 2px #99713c,0 17px 0 7px #1e3026,var(--shadow),inset 0 0 0 9px rgba(3,29,26,.33),inset 0 0 80px rgba(6,30,25,.53);overflow:hidden;display:flex;flex-direction:column;justify-content:space-around;align-items:center;padding:19px 22px 23px;isolation:isolate}
+    .table-surface:before{content:"";position:absolute;inset:32px;border:1px solid rgba(245,224,165,.13);border-radius:42%;pointer-events:none;z-index:-1}
+    .table-surface:after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(24deg,transparent 0 3px,rgba(248,245,223,.015) 3px 4px);opacity:.6;pointer-events:none;z-index:-1}
+    .seat{display:flex;flex-direction:column;align-items:center;gap:11px;width:100%;position:relative}
+    .seat-info{display:flex;align-items:center;gap:10px;justify-content:center}
+    .avatar{height:37px;width:37px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:900;letter-spacing:-.015em;color:#ffe3b2;background:linear-gradient(150deg,#3a6254,#19392e);border:1px solid rgba(251,222,148,.48);box-shadow:0 3px 12px rgba(0,0,0,.1)}
+    .seat--active .avatar{box-shadow:0 0 0 4px rgba(238,195,116,.13),0 0 23px rgba(231,190,123,.5)}
+    .seat-title{font-weight:850;font-size:14px;line-height:1.2}.seat-subtitle{color:#b6d0bc;font-size:11px;margin-top:3px}
+    .lives{display:flex;align-items:center;justify-content:center;gap:6px;padding:5px 12px;border:1px solid rgba(235,203,146,.17);border-radius:100px;background:rgba(3,26,24,.19);font-size:14px;color:#eabd7e;letter-spacing:.02em;white-space:nowrap}
+    .lives .lost{color:#42645b;opacity:.8}
+    .hand{display:flex;justify-content:center;align-items:center;gap:clamp(7px,1.25vw,15px);min-height:170px}
+    .hand .card:nth-child(1){--deal-index:0}.hand .card:nth-child(2){--deal-index:1}.hand .card:nth-child(3){--deal-index:2}
+    .middle-zone{display:grid;place-items:center;width:100%;gap:10px;margin:5px 0}
+    .market-heading{display:flex;align-items:center;gap:15px;text-transform:uppercase;font-weight:850;font-size:10px;letter-spacing:.22em;color:#e8cf9d}
+    .market-heading:before,.market-heading:after{content:"";width:55px;height:1px;background:linear-gradient(90deg,transparent,rgba(231,195,115,.5))}
+    .market-heading:after{transform:rotate(180deg)}
+    .market-cards{display:flex;justify-content:center;gap:clamp(7px,1.5vw,16px)}
+    .market-cards .card:nth-child(1){--deal-index:3}.market-cards .card:nth-child(2){--deal-index:4}.market-cards .card:nth-child(3){--deal-index:5}
+    .market-note{font-size:11px;color:#b8d3c5;text-align:center;min-height:16px}
+    .deck-decoration{position:absolute;left:34px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:13px;pointer-events:none}
+    .deck-stack{position:relative;width:56px;height:79px;background:#0c2b2b;border:3px solid #c39860;border-radius:6px;box-shadow:-4px 4px 0 #0e3934,-6px 6px 0 #c39860,-8px 8px 0 #0e3934}
+    .deck-stack:before{content:"✥";position:absolute;inset:5px;display:grid;place-items:center;border:1px solid rgba(235,190,116,.44);color:#d2aa66;font:27px Georgia,serif}
+    .deck-caption{font-size:10px;letter-spacing:.12em;color:#aaccb8;text-transform:uppercase}
+    .turn-glow{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);width:210px;height:4px;border-radius:50%;background:rgba(242,206,124,.5);filter:blur(12px);opacity:0;transition:opacity .4s}
+    .seat--active .turn-glow{opacity:1}
+    .card{position:relative;display:block;padding:0;border:0;background:none;color:inherit;width:clamp(76px,8.2vw,107px);aspect-ratio:0.704;flex:none;perspective:900px;transition:transform .2s,filter .2s;will-change:transform}
+    .card--interactive:hover:not(:disabled){transform:translateY(-8px)}
+    .card--selected{transform:translateY(-15px) rotate(-2deg)!important;filter:drop-shadow(0 0 12px rgba(245,203,118,.48))}
+    .card__inner{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .52s cubic-bezier(.25,.75,.25,1)}
+    .card--face-down .card__inner{transform:rotateY(180deg)}
+    .card--reveal .card__inner{animation:revealCard .62s cubic-bezier(.2,.8,.2,1) both}
+    @keyframes revealCard{from{transform:rotateY(180deg)}to{transform:rotateY(0deg)}}
+    .card__front,.card__back{position:absolute;inset:0;border-radius:10px;backface-visibility:hidden;overflow:hidden;box-shadow:0 6px 12px rgba(0,0,0,.32)}
+    .card__front{border:4px solid #fff9ec;background:linear-gradient(153deg,#fffdf5,#e9e4d7);color:var(--black);display:flex;align-items:center;justify-content:center}
+    .card--red .card__front{color:var(--red)}
+    .card--selected .card__front{outline:4px solid #f9d486;outline-offset:-4px;box-shadow:0 0 0 2px rgba(249,212,134,.8),0 7px 24px rgba(0,0,0,.35)}
+    .card__front:before{content:"";inset:5px;position:absolute;border:1px solid rgba(113,91,58,.08);border-radius:6px}
+    .card__corner{position:absolute;top:7px;left:6px;display:grid;justify-items:center;gap:0;font:bold clamp(13px,2vw,20px)/.95 Georgia,serif;letter-spacing:-.04em}
+    .card__corner small{font-size:clamp(11px,1.4vw,17px);line-height:1.15}
+    .card__corner--bottom{top:auto;left:auto;bottom:7px;right:6px;transform:rotate(180deg)}
+    .card__suit{font:clamp(39px,5.2vw,70px)/1 Georgia,serif;opacity:.95;text-shadow:0 2px 1px rgba(0,0,0,.05)}
+    .card__back{transform:rotateY(180deg);border:5px solid #f3dfb4;background:repeating-linear-gradient(45deg,rgba(237,190,115,.075) 0 2px,transparent 2px 8px),repeating-linear-gradient(-45deg,rgba(237,190,115,.05) 0 2px,transparent 2px 8px),#123934;display:grid;place-items:center}
+    .card__back:before{content:"";position:absolute;inset:5px;border:1px solid #ae8651;border-radius:4px}
+    .card__back:after{content:"✦";width:49%;aspect-ratio:1;display:grid;place-items:center;border:2px solid rgba(226,183,104,.83);transform:rotate(45deg);color:#dcb17a;font:25px Georgia,serif;text-shadow:0 0 9px rgba(243,213,139,.45)}
+    .card--deal{animation:dealCard .55s cubic-bezier(.15,.85,.3,1.12) both;animation-delay:calc(var(--deal-index,0) * 72ms)}
+    @keyframes dealCard{from{opacity:0;transform:translateY(-55px) scale(.78) rotate(-8deg)}to{opacity:1;transform:translateY(0) scale(1) rotate(0)}}
+    .flying-card{position:fixed!important;z-index:300!important;pointer-events:none!important;transition:none!important;filter:drop-shadow(0 14px 18px rgba(0,0,0,.25));margin:0!important}
+
+    /* SIDEBAR */
+    .side-panel{display:flex;flex-direction:column;gap:13px}
+    .side-section{border:1px solid rgba(244,219,159,.17);border-radius:21px;background:linear-gradient(140deg,rgba(32,69,61,.82),rgba(8,33,30,.87));box-shadow:0 10px 28px rgba(0,0,0,.08);padding:22px}
+    .status-section{min-height:174px;position:relative;overflow:hidden}
+    .status-section:after{content:"♠";position:absolute;right:-12px;top:-47px;font:165px Georgia,serif;color:rgba(240,211,155,.055);transform:rotate(15deg);pointer-events:none}
+    .turn-indicator{display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:850;letter-spacing:.12em;text-transform:uppercase;color:#efc987;margin-bottom:17px}
+    .turn-indicator:before{content:"";width:8px;height:8px;border-radius:50%;background:#8fc2a3;box-shadow:0 0 0 4px rgba(143,194,163,.12)}
+    .turn-indicator.is-waiting:before{background:var(--gold);animation:breathe 1.2s infinite}
+    .status-section h2{font-family:Georgia,serif;font-size:27px;font-weight:750;letter-spacing:-.03em;margin:0 0 8px;line-height:1.2}
+    .status-section p{font-size:12px;line-height:1.6;color:#acc4b7;margin:0;position:relative}
+    .score-section{display:grid;gap:10px}
+    .score-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .score-tile{border:1px solid rgba(241,219,162,.13);border-radius:13px;background:rgba(0,0,0,.15);padding:15px 12px}
+    .score-tile .score-label{display:block;color:#b2c6b9;font-size:10px;text-transform:uppercase;letter-spacing:.09em;font-weight:800}
+    .score-tile strong{display:block;font:750 39px Georgia,serif;letter-spacing:-.045em;margin:8px 0 1px;color:#f7e9c7}
+    .score-tile small{color:#a9bfb0;font-size:10px;line-height:1.4;min-height:12px;display:block}
+    .score-tile.is-secret strong{font-family:Inter,system-ui,sans-serif;letter-spacing:.05em}
+    .action-section{display:flex;flex-direction:column;gap:10px}
+    .action-section .eyebrow{margin-bottom:4px}
+    .action-section button{width:100%;min-height:47px;display:flex;align-items:center;justify-content:space-between;gap:9px;text-align:left}
+    .action-section button .action-icon{font-size:22px;font-weight:400;opacity:.9}
+    .action-section button small{font-size:10px;opacity:.65;font-weight:700;letter-spacing:.07em}
+    .hint-section{margin-top:auto;padding:18px 21px}
+    .hint-section .eyebrow{font-size:9px;margin-bottom:9px}
+    .hint-section p{color:#b1cbbb;font-size:12px;line-height:1.6;margin:0}
+    .hint-section strong{color:#f5daaa}
+    .game-footer{max-width:1490px;margin:21px auto 0;display:flex;justify-content:space-between;color:#8baa9e;font-size:11px;gap:8px;flex-wrap:wrap}
+
+    /* OVERLAYS AND FEEDBACK */
+    .overlay{position:fixed;inset:0;z-index:500;display:grid;place-items:center;padding:22px;background:rgba(3,17,17,.76);backdrop-filter:blur(10px);animation:fadeIn .2s ease both}
+    .modal-panel{position:relative;width:min(100%,520px);background:linear-gradient(155deg,#1b4c40,#092a25);border:1px solid rgba(244,210,147,.42);border-radius:26px;box-shadow:0 28px 95px rgba(0,0,0,.48);padding:35px 35px 28px;overflow:hidden}
+    .modal-panel:before{content:"";position:absolute;inset:8px;pointer-events:none;border:1px solid rgba(229,196,129,.11);border-radius:20px}
+    .modal-close{position:absolute;top:19px;right:19px;width:33px;height:33px;display:grid;place-items:center;padding:0;border:1px solid rgba(249,223,164,.2);border-radius:9px;background:rgba(255,255,255,.06);color:#f5e7ca;font-size:20px;z-index:1}
+    .modal-panel h2{font:750 36px/1.15 Georgia,serif;margin:14px 0 20px;letter-spacing:-.035em}
+    .rules-list{display:grid;gap:15px;margin-bottom:25px}
+    .rule-row{display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start}
+    .rule-number{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:rgba(245,214,158,.13);color:var(--gold);font-weight:850;font-size:13px}
+    .rule-row p{margin:0;color:#d2e0d5;font-size:13px;line-height:1.6}.rule-row strong{color:#ffe0a2}
+    .rules-close-button{width:100%}
+    .result-panel{text-align:center;max-width:525px}
+    .result-icon{height:64px;width:64px;margin:0 auto 14px;border:1px solid rgba(243,209,147,.48);border-radius:50%;display:grid;place-items:center;font-size:32px;color:var(--gold-soft);background:rgba(240,193,124,.1)}
+    .result-icon.is-win{animation:resultPop .65s both;box-shadow:0 0 45px rgba(233,187,106,.24)}
+    .result-panel h2{font-size:clamp(32px,6vw,48px);margin:12px 0 8px}
+    .result-panel .result-reason{color:#d6e6dc;font-size:14px;line-height:1.55;margin:0 0 20px}
+    .showdown{display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:left;margin:20px 0 24px}
+    .showdown-side{padding:13px;background:rgba(0,0,0,.18);border:1px solid rgba(242,205,149,.17);border-radius:13px}
+    .showdown-side span{font-size:10px;color:#bdd2c2;letter-spacing:.12em;font-weight:850;text-transform:uppercase}
+    .showdown-side strong{display:block;color:#f6dfb4;font:750 31px Georgia,serif;margin:5px 0}
+    .mini-cards{display:flex;gap:5px;margin-top:10px;min-height:27px;align-items:center}
+    .mini-card{display:grid;place-items:center;background:#f7f2e6;border-radius:4px;height:28px;min-width:25px;padding:0 3px;font:bold 11px Georgia,serif;color:#19262a}
+    .mini-card.red{color:var(--red)}
+    .result-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.result-actions button{flex:1;min-width:150px}
+    .toast{position:fixed;left:50%;bottom:27px;transform:translate(-50%,18px);z-index:700;opacity:0;pointer-events:none;max-width:min(90%,560px);text-align:center;padding:12px 21px;background:#f6dcaa;color:#302616;border-radius:100px;font-weight:800;font-size:12px;box-shadow:0 13px 37px rgba(0,0,0,.35);transition:opacity .22s,transform .22s}
+    .toast.show{opacity:1;transform:translate(-50%,0)}
+    .confetti-piece{position:fixed;top:-20px;z-index:600;width:8px;height:16px;pointer-events:none;animation:confettiFall var(--t,2.8s) linear forwards;animation-delay:var(--delay,0s);left:var(--x,50%);background:var(--c,#f7dbac);transform:rotate(var(--r,0deg))}
+    @keyframes confettiFall{from{translate:0 -30px;rotate:0deg;opacity:1}to{translate:var(--drift,40px) 110vh;rotate:750deg;opacity:0}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes resultPop{from{transform:scale(.5) rotate(-18deg);opacity:.2}to{transform:scale(1) rotate(0);opacity:1}}
+    @keyframes breathe{50%{opacity:.45;box-shadow:0 0 0 7px rgba(238,195,116,.14)}}
+
+    @media(max-width:1100px){
+      .game-layout{grid-template-columns:minmax(0,1fr) 265px;gap:13px}.table-surface{min-height:655px}.side-section{padding:17px}.deck-decoration{left:20px}.deck-stack{width:41px;height:60px}
+      .intro-title{font-size:clamp(70px,9vw,113px)}.hero-art{height:510px}.showcase-card{width:190px;height:275px}.showcase-card .center{font-size:110px}.hero-halo{width:415px;height:415px}
+    }
+    @media(max-width:780px){
+      .start-content{padding:24px 20px 25px}.start-screen:after{inset:9px;border-radius:20px}.start-body{grid-template-columns:1fr;gap:0}.intro{text-align:center;margin:24px auto 18px}.intro-title{font-size:clamp(76px,15vw,125px)}.intro-title span{font-size:22px}.intro-lead{margin:0 auto 27px}.difficulty-list{margin:auto;text-align:left}.hero-art{grid-row:1;height:240px;order:-1;pointer-events:none}.hero-halo{width:255px;height:255px}.showcase-card{width:105px;height:150px;border-width:5px;border-radius:10px}.showcase-card .center{font-size:61px}.showcase-card .corner{font-size:16px;top:7px;left:7px}.showcase-card .corner small{font-size:13px}.showcase-ribbon{padding:9px 13px;font-size:9px;top:82%}.start-bottom{padding-top:26px}
+      .game-layout{grid-template-columns:1fr}.table-surface{min-height:620px}.side-panel{display:grid;grid-template-columns:1fr 1fr;align-items:start}.status-section{min-height:0}.action-section{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.action-section .eyebrow{grid-column:1/-1}.action-section button{min-height:49px}.hint-section{grid-column:1/-1}
+      .game-screen{padding:17px 13px 24px}
+    }
+    @media(max-width:480px){
+      .start-top .soft-button{padding:9px 11px;font-size:11px}.start-content{padding:20px 17px 22px}.brand{font-size:12px}.brand-symbol{height:34px;width:34px;font-size:20px}.intro{margin-top:13px}.intro-title{font-size:clamp(69px,18vw,95px);margin:14px 0 16px}.intro-title span{font-size:17px;letter-spacing:.38em}.intro-lead{font-size:15px;margin-bottom:24px}.difficulty-card{padding:10px 13px;gap:12px}.difficulty-icon{width:42px;height:44px;font-size:21px}.difficulty-text strong{font-size:16px}.difficulty-text small{font-size:11px}.hero-art{height:215px}.start-bottom{font-size:10px}
+      .game-topbar{gap:10px}.game-topbar .brand{font-size:12px}.game-topbar .brand-symbol{display:none}.game-topbar .soft-button{padding:8px 9px;font-size:11px}.game-actions{gap:6px}.round-counter{padding:7px 10px;font-size:10px}.round-counter span{font-size:12px}
+      .table-surface{min-height:555px;border-radius:34px;padding:20px 10px;box-shadow:0 5px 0 #092820,0 8px 0 2px #99713c,0 14px 0 5px #1e3026,var(--shadow),inset 0 0 0 7px rgba(3,29,26,.33)}.table-surface:before{inset:17px}
+      .card{width:clamp(72px,21vw,92px)}.card__corner{font-size:17px}.card__corner small{font-size:13px}.card__suit{font-size:clamp(40px,11vw,58px)}.hand{min-height:118px;gap:9px}.market-cards{gap:9px}.seat{gap:6px}.seat-info{gap:8px}.avatar{width:31px;height:31px;font-size:10px}.seat-title{font-size:12px}.seat-subtitle{font-size:10px}.lives{font-size:12px;padding:4px 8px}.middle-zone{gap:7px;margin:8px 0}.market-heading{font-size:9px}.market-heading:before,.market-heading:after{width:27px}.market-note{font-size:10px}.deck-decoration{display:none}
+      .side-panel{gap:9px}.side-section{padding:14px;border-radius:15px}.status-section{min-height:145px}.status-section h2{font-size:22px}.status-section p{font-size:11px}.turn-indicator{font-size:9px;margin-bottom:11px}.score-section{display:flex;flex-direction:column}.score-grid{gap:7px}.score-tile{padding:9px 7px}.score-tile strong{font-size:28px;margin:4px 0 0}.score-tile .score-label{font-size:9px}.score-tile small{font-size:9px}.action-section button{font-size:12px;padding:12px 10px;min-height:58px}.action-section .action-icon{font-size:16px}.action-section button small{font-size:8px}.action-section button{flex-direction:column;justify-content:center;align-items:center;gap:3px;text-align:center}.action-section button .action-icon{display:none}.hint-section{margin:0}.game-footer{font-size:10px}
+      .modal-panel{padding:30px 21px 23px}.modal-panel h2{font-size:31px}.result-actions button{min-width:120px;padding:13px 9px}.showdown{gap:8px}.showdown-side{padding:10px}.showdown-side strong{font-size:25px}
+    }
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
+  </style>
+</head>
+<body>
+  <main id="startScreen" class="start-screen">
+    <div class="start-content">
+      <div class="start-top">
+        <div class="brand"><span class="brand-symbol" aria-hidden="true">♠</span> SUPER-KNACK <span style="color:#e4c68e;opacity:.62;font-size:11px">/ 31</span></div>
+        <button type="button" class="soft-button" data-rules>Spielregeln <span aria-hidden="true">↗</span></button>
+      </div>
+      <div class="start-body">
+        <div class="intro">
+          <div class="eyebrow">Das klassische Kartenduell · neu gemischt</div>
+          <h1 class="intro-title"><span>SUPER</span>KNACK<span style="display:inline;color:#e8be77;font:inherit;letter-spacing:inherit;margin:0">.</span></h1>
+          <p class="intro-lead">Drei Karten. Ein Gegner. Ein Ziel: <strong>31 Punkte</strong> – oder mit <strong>drei Assen</strong> sofort alles gewinnen.</p>
+          <div class="difficulty-heading" id="diffTitle">Wähle deinen Gegner</div>
+          <div class="difficulty-list" role="group" aria-labelledby="diffTitle">
+            <button type="button" class="difficulty-card" data-difficulty="easy"><span class="difficulty-icon" aria-hidden="true">♣</span><span class="difficulty-text"><strong>Leicht</strong><small>Ein entspannter Gegner, der auch Fehler macht</small></span><span class="difficulty-chevron" aria-hidden="true">›</span></button>
+            <button type="button" class="difficulty-card" data-difficulty="medium"><span class="difficulty-icon" aria-hidden="true">♦</span><span class="difficulty-text"><strong>Mittel</strong><small>Spielt überlegt und erkennt gute Kombinationen</small></span><span class="difficulty-chevron" aria-hidden="true">›</span></button>
+            <button type="button" class="difficulty-card" data-difficulty="hard"><span class="difficulty-icon" aria-hidden="true">♠</span><span class="difficulty-text"><strong>Schwer</strong><small>Rechnet Kartenwechsel durch und spielt taktisch</small></span><span class="difficulty-chevron" aria-hidden="true">›</span></button>
+          </div>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="hero-halo"></div>
+          <div class="showcase-card back-one"><span class="corner">A<small>♠</small></span><span class="center">♠</span></div>
+          <div class="showcase-card back-two"><span class="corner">A<small>♦</small></span><span class="center">♦</span></div>
+          <div class="showcase-card front"><span class="corner">A<small>♥</small></span><span class="center">♥</span></div>
+          <div class="showcase-ribbon">3 Asse = Super-Knack</div>
+        </div>
+      </div>
+      <div class="start-bottom"><span>32 Karten <b>·</b> 3 Leben <b>·</b> 1 Gewinner</span><span>Einzelspieler gegen den Computer</span></div>
+    </div>
+  </main>
+
+  <main id="gameScreen" class="game-screen is-hidden">
+    <header class="game-topbar">
+      <div class="brand"><span class="brand-symbol" aria-hidden="true">♠</span> SUPER-KNACK</div>
+      <div class="round-counter">RUNDE <span id="roundNumber">01</span></div>
+      <div class="game-actions">
+        <button type="button" id="soundButton" class="soft-button" aria-label="Ton ausschalten">♪ Ton an</button>
+        <button type="button" class="soft-button" data-rules>Regeln</button>
+        <button type="button" id="menuButton" class="soft-button">↖ Menü</button>
+      </div>
+    </header>
+    <div class="game-layout">
+      <section class="table-surface" aria-label="Kartentisch">
+        <div class="seat seat--cpu" id="cpuSeat">
+          <div class="seat-info"><span class="avatar" aria-hidden="true">KI</span><div><div class="seat-title">Computer</div><div class="seat-subtitle" id="cpuDifficulty">Mittel</div></div><div class="lives" id="cpuLives" aria-label="Leben des Computers"></div></div>
+          <div id="cpuHand" class="hand" aria-label="Handkarten des Computers"></div>
+          <div class="turn-glow"></div>
+        </div>
+        <div class="middle-zone">
+          <div class="market-heading">Karten in der Mitte</div>
+          <div id="marketCards" class="market-cards" aria-label="Offene Karten zum Tauschen"></div>
+          <div id="marketNote" class="market-note">Karten zum Tauschen auswählen</div>
+        </div>
+        <div class="deck-decoration" aria-hidden="true"><div class="deck-stack"></div><span class="deck-caption">32 Karten</span></div>
+        <div class="seat seat--human" id="humanSeat">
+          <div class="hand" id="humanHand" aria-label="Deine Handkarten"></div>
+          <div class="seat-info"><span class="avatar" aria-hidden="true">DU</span><div><div class="seat-title">Du</div><div class="seat-subtitle">Deine Karten</div></div><div class="lives" id="humanLives" aria-label="Deine Leben"></div></div>
+          <div class="turn-glow"></div>
+        </div>
+      </section>
+      <aside class="side-panel" aria-label="Spielsteuerung">
+        <section class="side-section status-section" aria-live="polite">
+          <div class="turn-indicator" id="turnIndicator">Du bist am Zug</div>
+          <h2 id="statusTitle">Deine Entscheidung.</h2>
+          <p id="statusText">Wähle eine Karte aus deiner Hand und danach eine Karte in der Mitte.</p>
+        </section>
+        <section class="side-section score-section">
+          <div class="eyebrow">Aktuelle Hand</div>
+          <div class="score-grid">
+            <div class="score-tile"><span class="score-label">Deine Punkte</span><strong id="humanScore">0</strong><small id="humanScoreType">–</small></div>
+            <div class="score-tile is-secret"><span class="score-label">Computer</span><strong id="cpuScore">??</strong><small id="cpuScoreType">Verdeckt</small></div>
+          </div>
+        </section>
+        <section class="side-section action-section">
+          <div class="eyebrow">Dein Zug</div>
+          <button type="button" id="swapAllButton" class="gold-button"><span>Alle 3 tauschen</span><span class="action-icon" aria-hidden="true">⇄</span></button>
+          <button type="button" id="passButton" class="soft-button"><span>Schieben</span><small>PASSEN</small></button>
+          <button type="button" id="knockButton" class="soft-button"><span>Klopfen</span><small>LETZTE RUNDE</small></button>
+        </section>
+        <section class="side-section hint-section">
+          <div class="eyebrow">So wird gespielt</div>
+          <p id="actionHint"><strong>Einzeln tauschen:</strong> Erst eine eigene Karte anklicken, dann eine der drei offenen Karten.</p>
+        </section>
+      </aside>
+    </div>
+    <footer class="game-footer"><span>♠ ♣ ♦ ♥ &nbsp; Ass = 11 · Bild = 10 · Drilling = 30½</span><span>Drei Asse = sofortiger Super-Knack</span></footer>
+  </main>
+
+  <div id="rulesOverlay" class="overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+    <div class="modal-panel">
+      <button type="button" class="modal-close" id="closeRules" aria-label="Spielregeln schließen">×</button>
+      <div class="eyebrow">Kurz erklärt</div>
+      <h2 id="rulesTitle">So funktioniert Knack</h2>
+      <div class="rules-list">
+        <div class="rule-row"><span class="rule-number">01</span><p>Du hast <strong>3 Karten</strong>. Es zählen die Punkte deiner besten <strong>Farbe</strong>: Ass 11, 10/Bube/Dame/König je 10, Zahlenkarten ihren Wert.</p></div>
+        <div class="rule-row"><span class="rule-number">02</span><p>Tausche <strong>eine Karte</strong> aus deiner Hand mit einer offenen Karte in der Mitte – oder tausche <strong>alle drei auf einmal</strong>.</p></div>
+        <div class="rule-row"><span class="rule-number">03</span><p>Drei Karten mit gleichem Wert ergeben <strong>30½ Punkte</strong>. <strong>31 Punkte</strong> sind Knack und gewinnen die Runde sofort.</p></div>
+        <div class="rule-row"><span class="rule-number">04</span><p><strong>Drei Asse sind Super-Knack:</strong> Du gewinnst die Runde sofort – auch gegen 31 Punkte.</p></div>
+        <div class="rule-row"><span class="rule-number">05</span><p>Mit <strong>Schieben</strong> setzt du aus. Schieben beide, werden die offenen Karten erneuert. Mit <strong>Klopfen</strong> erhält dein Gegner genau einen letzten Zug, dann werden die Punkte verglichen.</p></div>
+        <div class="rule-row"><span class="rule-number">06</span><p>Wer eine Runde verliert, verliert <strong>ein Leben</strong>. Bei Gleichstand verliert niemand. Wer zuerst keine Leben mehr hat, verliert das Match.</p></div>
+      </div>
+      <button type="button" id="rulesOkay" class="gold-button rules-close-button">Verstanden</button>
+    </div>
+  </div>
+
+  <div id="resultOverlay" class="overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+    <div class="modal-panel result-panel">
+      <div id="resultIcon" class="result-icon" aria-hidden="true">✦</div>
+      <div class="eyebrow" id="resultEyebrow">Runde beendet</div>
+      <h2 id="resultTitle">Du gewinnst!</h2>
+      <p class="result-reason" id="resultReason">Du hast die höhere Punktzahl.</p>
+      <div class="showdown">
+        <div class="showdown-side"><span>Deine Hand</span><strong id="resultHumanScore">30½</strong><div id="resultHumanCards" class="mini-cards"></div></div>
+        <div class="showdown-side"><span>Computer</span><strong id="resultCpuScore">27</strong><div id="resultCpuCards" class="mini-cards"></div></div>
+      </div>
+      <div class="result-actions"><button type="button" id="resultMenu" class="soft-button">Zum Menü</button><button type="button" id="nextRoundButton" class="gold-button">Nächste Runde →</button></div>
+    </div>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    'use strict';
+    // Standalone-Spiel: funktioniert ohne Netzwerk, Bibliotheken oder Benutzerkonto.
+    const SUITS = [
+      { id:'hearts', symbol:'♥', name:'Herz', red:true },
+      { id:'diamonds', symbol:'♦', name:'Karo', red:true },
+      { id:'clubs', symbol:'♣', name:'Kreuz', red:false },
+      { id:'spades', symbol:'♠', name:'Pik', red:false }
+    ];
+    const RANKS = ['7','8','9','10','J','Q','K','A'];
+    const RANK_VALUE = { '7':7, '8':8, '9':9, '10':10, J:10, Q:10, K:10, A:11 };
+    const DIFFICULTIES = { easy:'Leicht', medium:'Mittel', hard:'Schwer' };
+    const $ = id => document.getElementById(id);
+    const sleep = ms => new Promise(resolve => setTimeout(resolve,ms));
+    const random = (min,max) => Math.random()*(max-min)+min;
+    const clamp = (n,a,b) => Math.max(a,Math.min(n,b));
+    let state = null;
+    let soundOn = true;
+    let audioCtx = null;
+    let toastTimer = null;
+
+    function shuffle(a) {
+      const result = [...a];
+      for(let i=result.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[result[i],result[j]]=[result[j],result[i]];}
+      return result;
+    }
+    function allCards() {
+      return SUITS.flatMap(s => RANKS.map(rank => ({ id:s.id+'-'+rank, rank, suit:s.id, symbol:s.symbol, color:s.red?'red':'black', value:RANK_VALUE[rank] })));
+    }
+    function scoreHand(hand) {
+      if(!hand || hand.length !== 3) return { points:0, type:'normal', label:'–', suit:null };
+      if(hand.every(c=>c.rank==='A')) return { points:33, type:'super', label:'Super-Knack', suit:null };
+      const sums = SUITS.map(s => ({ id:s.id,name:s.name,total:hand.filter(c=>c.suit===s.id).reduce((a,c)=>a+c.value,0) }));
+      const best = sums.reduce((a,b)=>b.total>a.total?b:a);
+      if(best.total===31) return { points:31, type:'knack', label:'Knack!', suit:best.id };
+      if(hand.every(c=>c.rank===hand[0].rank)) return { points:30.5, type:'triple', label:'Drilling', suit:null };
+      return { points:best.total, type:'normal', label:best.name, suit:best.id };
+    }
+    function scoreText(score){return score.type==='super'?'33':score.points===30.5?'30½':String(score.points)}
+    function spokenScore(score){return score.type==='super'?'Super-Knack':score.type==='knack'?'Knack mit 31 Punkten':score.points===30.5?'30½ Punkte':score.points+' Punkte'}
+
+    function playSound(type) {
+      if(!soundOn) return;
+      try {
+        const AC=window.AudioContext||window.webkitAudioContext;
+        if(!AC) return;
+        audioCtx ||= new AC();
+        if(audioCtx.state==='suspended') audioCtx.resume();
+        const now=audioCtx.currentTime;
+        const notes=type==='win'?[520,650,785,1040]:type==='lose'?[330,275,220]:type==='knock'?[220,180]:type==='select'?[510]:[380,530];
+        notes.forEach((hz,i)=>{
+          const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+          o.type=type==='knock'?'triangle':'sine';o.frequency.setValueAtTime(hz,now+i*.085);
+          g.gain.setValueAtTime(.0001,now+i*.085);
+          g.gain.exponentialRampToValueAtTime(type==='select'?.025:.042,now+i*.085+.01);
+          g.gain.exponentialRampToValueAtTime(.0001,now+i*.085+.17);
+          o.connect(g);g.connect(audioCtx.destination);o.start(now+i*.085);o.stop(now+i*.085+.2);
+        });
+      }catch(error){ /* Ton ist optional. */ }
+    }
+    function showToast(message) {
+      const toast=$('toast');toast.textContent=message;toast.classList.add('show');
+      clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove('show'),2400);
+    }
+    function showScreen(name) {
+      $('startScreen').classList.toggle('is-hidden',name!=='start');
+      $('gameScreen').classList.toggle('is-hidden',name!=='game');
+      window.scrollTo({top:0,behavior:'instant'});
+    }
+    function openRules(){ $('rulesOverlay').classList.remove('is-hidden');$('closeRules').focus(); }
+    function closeRules(){ $('rulesOverlay').classList.add('is-hidden'); }
+    function goToMenu() {
+      $('resultOverlay').classList.add('is-hidden');closeRules();
+      state = null;showScreen('start');
+    }
+    function startMatch(difficulty) {
+      state={
+        difficulty,phase:'dealing',round:0,lives:{human:3,cpu:3},wins:{human:0,cpu:0},
+        deck:[],hands:{human:[],cpu:[]},market:[],selected:null,
+        knockBy:null,passes:0,turns:0,revealCpu:false
+      };
+      $('resultOverlay').classList.add('is-hidden');showScreen('game');
+      dealRound();
+    }
+    async function dealRound() {
+      if(!state)return;
+      const session=state;
+      state.phase='dealing';state.round++;const roundId=state.round;state.selected=null;state.knockBy=null;
+      state.passes=0;state.turns=0;state.revealCpu=false;
+      state.deck=shuffle(allCards());
+      state.hands.human=state.deck.splice(0,3);
+      state.hands.cpu=state.deck.splice(0,3);
+      state.market=state.deck.splice(0,3);
+      renderAll(true);
+      playSound('deal');
+      await sleep(920);
+      if(!state||state!==session||state.round!==roundId||state.phase!=='dealing')return;
+      const humanScore=scoreHand(state.hands.human),cpuScore=scoreHand(state.hands.cpu);
+      if(humanScore.points>=31 || cpuScore.points>=31){finishRound('Sofortige Gewinnkombination beim Austeilen.');return;}
+      state.phase='human';renderAll();
+    }
+    function cardElement(card,opts={}) {
+      const {faceDown=false,interactive=false,selected=false,deal=false,reveal=false,owner='',index=0}=opts;
+      const btn=document.createElement('button');btn.type='button';
+      btn.className='card'+(card.color==='red'?' card--red':'')+(faceDown?' card--face-down':'')+(selected?' card--selected':'')+(interactive?' card--interactive':'')+(deal?' card--deal':'')+(reveal?' card--reveal':'');
+      btn.dataset.owner=owner;btn.dataset.index=String(index);
+      btn.setAttribute('aria-label',faceDown?'Verdeckte Karte':card.rank+' '+SUITS.find(s=>s.id===card.suit).name+(selected?', ausgewählt':''));
+      btn.disabled=!interactive;btn.setAttribute('aria-pressed',String(selected));
+      const rank=card.rank==='J'?'B':card.rank==='Q'?'D':card.rank==='K'?'K':card.rank;
+      btn.innerHTML=`<span class="card__inner"><span class="card__front"><span class="card__corner">${rank}<small>${card.symbol}</small></span><span class="card__suit">${card.symbol}</span><span class="card__corner card__corner--bottom">${rank}<small>${card.symbol}</small></span></span><span class="card__back"></span></span>`;
+      return btn;
+    }
+    function renderCards(deal=false){
+      if(!state)return;
+      const playable=state.phase==='human';
+      const cpuHand=$('cpuHand'),humanHand=$('humanHand'),market=$('marketCards');
+      cpuHand.replaceChildren(...state.hands.cpu.map((c,i)=>cardElement(c,{faceDown:!state.revealCpu,reveal:state.revealCpu,owner:'cpu',index:i,deal})));
+      humanHand.replaceChildren(...state.hands.human.map((c,i)=>cardElement(c,{interactive:playable,selected:state.selected===i,owner:'human',index:i,deal})));
+      market.replaceChildren(...state.market.map((c,i)=>cardElement(c,{interactive:playable,owner:'market',index:i,deal})));
+      humanHand.querySelectorAll('.card').forEach(card=>card.addEventListener('click',()=>selectHandCard(Number(card.dataset.index))));
+      market.querySelectorAll('.card').forEach(card=>card.addEventListener('click',()=>selectMarketCard(Number(card.dataset.index))));
+    }
+    function hearts(n){return Array.from({length:3},(_,i)=>`<span class="${i<n?'':'lost'}" aria-hidden="true">♥</span>`).join('')}
+    function renderUI() {
+      if(!state)return;
+      $('roundNumber').textContent=String(state.round).padStart(2,'0');
+      $('cpuDifficulty').textContent='Stufe '+DIFFICULTIES[state.difficulty];
+      $('cpuLives').innerHTML=hearts(state.lives.cpu);$('humanLives').innerHTML=hearts(state.lives.human);
+      $('cpuLives').setAttribute('aria-label',state.lives.cpu+' von 3 Leben');$('humanLives').setAttribute('aria-label',state.lives.human+' von 3 Leben');
+      const hs=scoreHand(state.hands.human),cs=scoreHand(state.hands.cpu);
+      $('humanScore').textContent=scoreText(hs);$('humanScoreType').textContent=hs.label;
+      $('cpuScore').textContent=state.revealCpu?scoreText(cs):'??';
+      $('cpuScoreType').textContent=state.revealCpu?cs.label:'Verdeckt';
+      $('cpuSeat').classList.toggle('seat--active',state.phase==='cpu');
+      $('humanSeat').classList.toggle('seat--active',state.phase==='human');
+      const yourTurn=state.phase==='human';
+      $('turnIndicator').textContent=state.phase==='cpu'?'Computer ist am Zug':state.phase==='dealing'?'Karten werden gegeben':state.phase==='human'?'Du bist am Zug':state.phase==='busy'?'Dein Zug läuft':'Runde beendet';
+      $('turnIndicator').classList.toggle('is-waiting',state.phase==='cpu'||state.phase==='dealing');
+      const finalTurn=state.knockBy==='cpu'&&yourTurn;
+      if(state.phase==='dealing'){
+        $('statusTitle').textContent='Die Karten fallen.';
+        $('statusText').textContent='Die Runde wird vorbereitet. Viel Glück!';
+      }else if(state.phase==='busy'){
+        $('statusTitle').textContent='Zug wird gespielt …';
+        $('statusText').textContent='Die Karten werden bewegt. Danach ist dein Gegner dran.';
+      }else if(state.phase==='cpu'){
+        $('statusTitle').textContent='Der Computer denkt …';
+        $('statusText').textContent=state.knockBy==='human'?'Du hast geklopft. Jetzt folgt der letzte Zug des Computers.':'Der Gegner prüft seine Möglichkeiten.';
+      }else if(yourTurn&&finalTurn){
+        $('statusTitle').textContent='Dein letzter Zug!';
+        $('statusText').textContent='Der Computer hat geklopft. Du darfst noch einmal tauschen oder schieben.';
+      }else if(yourTurn){
+        $('statusTitle').textContent=state.selected===null?'Deine Entscheidung.':'Karte ausgewählt!';
+        $('statusText').textContent=state.selected===null?'Wähle eine Karte aus deiner Hand und danach eine Karte in der Mitte.':'Jetzt die gewünschte Karte in der Mitte anklicken, um sie zu tauschen.';
+      }else{
+        $('statusTitle').textContent='Runde beendet.';
+        $('statusText').textContent='Die Karten werden aufgedeckt.';
+      }
+      $('swapAllButton').disabled=!yourTurn;
+      $('passButton').disabled=!yourTurn;
+      $('knockButton').disabled=!yourTurn||finalTurn;
+      $('marketNote').textContent=finalTurn?'Letzte Chance auf bessere Karten':yourTurn&&state.selected!==null?'Wähle eine Karte zum Tausch':yourTurn?'Eine oder alle drei Karten tauschen':'Drei offene Karten zum Tauschen';
+      $('actionHint').innerHTML=finalTurn?'<strong>Letzter Zug:</strong> Danach werden die Handkarten aufgedeckt und verglichen.':state.selected!==null?'<strong>Karte markiert.</strong> Klicke eine offene Karte zum Tauschen. Ein Klick auf deine Karte hebt die Auswahl auf.':'<strong>Einzeln tauschen:</strong> Erst eine eigene Karte anklicken, dann eine der drei offenen Karten.';
+    }
+    function renderAll(deal=false){renderCards(deal);renderUI();}
+    function selectHandCard(index){
+      if(!state||state.phase!=='human')return;
+      state.selected=state.selected===index?null:index;
+      playSound('select');renderAll();
+    }
+    function selectMarketCard(index){
+      if(!state||state.phase!=='human')return;
+      if(state.selected===null){showToast('Wähle zuerst eine deiner Handkarten.');return;}
+      doHumanMove({type:'single',i:state.selected,j:index});
+    }
+    async function animateExchange(owner,type,i,j) {
+      const pairs=type==='all'?[[0,0],[1,1],[2,2]]:[[i,j]];
+      const promises=[];
+      for(const [handIndex,marketIndex] of pairs){
+        const a=document.querySelector(`#${owner==='human'?'humanHand':'cpuHand'} .card[data-index="${handIndex}"]`);
+        const b=document.querySelector(`#marketCards .card[data-index="${marketIndex}"]`);
+        if(!a||!b)continue;
+        const ra=a.getBoundingClientRect(),rb=b.getBoundingClientRect();
+        a.style.visibility='hidden';b.style.visibility='hidden';
+        const fly=(source,r1,r2,rotation)=>{
+          const clone=source.cloneNode(true);clone.classList.remove('card--selected','card--interactive','card--deal');clone.classList.add('flying-card');
+          clone.style.left=r1.left+'px';clone.style.top=r1.top+'px';clone.style.width=r1.width+'px';clone.style.height=r1.height+'px';
+          document.body.append(clone);
+          const dx=r2.left-r1.left,dy=r2.top-r1.top;
+          if(typeof clone.animate==='function'){
+            const animation=clone.animate([{transform:'translate(0,0) rotate(0deg) scale(1)'},{transform:`translate(${dx}px,${dy}px) rotate(${rotation}deg) scale(1.035)`,offset:.6},{transform:`translate(${dx}px,${dy}px) rotate(0deg) scale(1)`}],{duration:480,easing:'cubic-bezier(.34,.08,.2,1)',fill:'forwards'});
+            return animation.finished.catch(()=>{}).then(()=>clone.remove());
+          }
+          clone.remove();return sleep(300);
+        };
+        promises.push(fly(a,ra,rb,-8),fly(b,rb,ra,8));
+      }
+      playSound('deal');
+      await Promise.all(promises);
+    }
+    function exchange(owner,move){
+      if(move.type==='single'){
+        const {i,j}=move;
+        [state.hands[owner][i],state.market[j]]=[state.market[j],state.hands[owner][i]];
+      }else if(move.type==='all'){
+        for(let i=0;i<3;i++) [state.hands[owner][i],state.market[i]]=[state.market[i],state.hands[owner][i]];
+      }
+      state.selected=null;state.passes=0;
+    }
+    async function performExchange(owner,move){
+      const session=state, roundId=state.round;
+      await animateExchange(owner,move.type,move.i,move.j);
+      if(!state||state!==session||state.round!==roundId)return false;
+      exchange(owner,move);renderAll();
+      await sleep(130);
+      return !!state&&state===session&&state.round===roundId;
+    }
+    function refreshMarket(){
+      // Wenn der Stapel leer ist, wird aus allen momentan nicht gehaltenen Karten neu gemischt.
+      if(state.deck.length<3){
+        const held=new Set([...state.hands.human,...state.hands.cpu].map(c=>c.id));
+        state.deck=shuffle(allCards().filter(c=>!held.has(c.id)));
+      }
+      state.market=state.deck.splice(0,3);
+      state.passes=0;renderAll(true);playSound('deal');showToast('Beide haben geschoben: 3 neue Karten!');
+    }
+    function checkInstantWin(){
+      const hs=scoreHand(state.hands.human),cs=scoreHand(state.hands.cpu);
+      if(hs.points>=31||cs.points>=31){finishRound('Sofortige Gewinnkombination!');return true;}
+      return false;
+    }
+    async function doHumanMove(move){
+      if(!state||state.phase!=='human')return;
+      const session=state,roundId=state.round;
+      state.phase='busy';renderUI();state.turns++;
+      if(move.type==='pass'){
+        state.selected=null;state.passes++;
+        playSound('select');
+        if(state.passes===2)refreshMarket();
+        renderAll();await sleep(200);
+      }else{
+        if(!(await performExchange('human',move)))return;
+        if(!state||state!==session||state.round!==roundId)return;
+        if(checkInstantWin())return;
+      }
+      if(!state||state!==session||state.round!==roundId)return;
+      if(state.knockBy==='cpu'){finishRound('Der Computer hatte geklopft.');return;}
+      if(state.turns>=36){finishRound('Rundenende nach vielen Zügen.');return;}
+      await cpuTurn();
+    }
+    async function humanKnock(){
+      if(!state||state.phase!=='human'||state.knockBy)return;
+      state.knockBy='human';state.selected=null;state.turns++;
+      playSound('knock');showToast('Du klopfst! Der Computer hat noch einen Zug.');
+      await cpuTurn();
+    }
+    function handQuality(hand){
+      const score=scoreHand(hand);
+      if(score.points>=31)return score.points*10;
+      const suits={};const ranks={};
+      for(const c of hand){(suits[c.suit]??=[]).push(c);(ranks[c.rank]??=[]).push(c);}
+      let potential=0;
+      for(const group of Object.values(suits))if(group.length===2){
+        const values=group.map(c=>c.value).sort((a,b)=>b-a);
+        potential=Math.max(potential,0.6+(values[0]+values[1]-17)*.18);
+      }
+      for(const group of Object.values(ranks))if(group.length===2){
+        potential=Math.max(potential,1.2+(group[0].rank==='A'?1.7:0));
+      }
+      return score.points+potential;
+    }
+    function enumerateMoves(hand,market){
+      const moves=[];
+      for(let i=0;i<3;i++)for(let j=0;j<3;j++){
+        const next=[...hand];next[i]=market[j];
+        moves.push({type:'single',i,j,quality:handQuality(next),points:scoreHand(next).points});
+      }
+      const next=[...market];moves.push({type:'all',quality:handQuality(next),points:scoreHand(next).points});
+      return moves.sort((a,b)=>b.quality-a.quality);
+    }
+    function chooseCpuMove(lastTurn){
+      const current=scoreHand(state.hands.cpu),currentQuality=handQuality(state.hands.cpu);
+      const all=enumerateMoves(state.hands.cpu,state.market);
+      const best=all[0];
+      const level=state.difficulty;
+      const positive=all.filter(x=>x.quality>currentQuality+.15);
+      let choice=null;
+      if(level==='easy'){
+        if(Math.random()<.56){choice=all[Math.floor(Math.random()*all.length)];}
+        else{choice=all[Math.floor(Math.random()*Math.min(5,all.length))];}
+        if(!lastTurn&&current.points>=27&&Math.random()<(current.points>=30.5?.58:.12))return {type:'knock'};
+        if(!lastTurn&&Math.random()<.1)return {type:'pass'};
+      }else if(level==='medium'){
+        choice=Math.random()<.78?best:all[Math.floor(Math.random()*Math.min(4,all.length))];
+        if(!lastTurn&&current.points>=27&&best.quality<currentQuality+1&&Math.random()<(current.points>=30.5?.85:.48))return {type:'knock'};
+      }else{
+        // Schwer verwendet nur eigene Hand und offene Karten, nie verdeckte Spielerkarten.
+        choice=best;
+        const strong=current.points>=29.5;
+        const comfortable=current.points>=27&&state.turns>=4;
+        if(!lastTurn&&(strong||comfortable)&&best.quality<currentQuality+1.3){
+          if(Math.random()<(strong?.94:.7))return {type:'knock'};
+        }
+      }
+      if(lastTurn){
+        if(level==='easy'&&Math.random()<.14)return {type:'pass'};
+        if(level!=='easy'&&choice.quality<=currentQuality+.1)return {type:'pass'};
+        return choice;
+      }
+      const improvement=choice.quality-currentQuality;
+      if(level==='easy'){
+        if(improvement<-.2&&Math.random()<.58)return {type:'pass'};
+      }else if(level==='medium'){
+        if(improvement<.18&&Math.random()<.84)return {type:'pass'};
+      }else if(improvement<.1){
+        if(current.points>=24&&Math.random()<(current.points>=27?.9:.32))return {type:'knock'};
+        return {type:'pass'};
+      }
+      return choice;
+    }
+    async function cpuTurn(){
+      if(!state)return;
+      const session=state,roundId=state.round;
+      state.phase='cpu';state.selected=null;renderAll();
+      const lastTurn=state.knockBy==='human';
+      const decision=chooseCpuMove(lastTurn);
+      await sleep(state.difficulty==='easy'?660:state.difficulty==='medium'?890:1130);
+      if(!state||state!==session||state.round!==roundId||state.phase!=='cpu')return;
+      state.turns++;
+      if(decision.type==='knock'){
+        state.knockBy='cpu';playSound('knock');
+        state.phase='human';renderAll();showToast('Der Computer klopft! Du hast noch einen Zug.');return;
+      }
+      if(decision.type==='pass'){
+        state.passes++;
+        playSound('select');
+        if(state.passes===2)refreshMarket();
+        else showToast('Der Computer schiebt.');
+      }else{
+        if(!(await performExchange('cpu',decision)))return;
+        if(!state||state!==session||state.round!==roundId)return;
+        showToast(decision.type==='all'?'Der Computer tauscht alle drei Karten.':'Der Computer tauscht eine Karte.');
+        if(checkInstantWin())return;
+      }
+      if(!state||state!==session||state.round!==roundId)return;
+      if(state.knockBy==='human'){finishRound('Du hattest geklopft.');return;}
+      if(state.turns>=36){finishRound('Rundenende nach vielen Zügen.');return;}
+      state.phase='human';renderAll();
+    }
+    function miniatureCards(hand){
+      return hand.map(c=>`<span class="mini-card ${c.color==='red'?'red':''}" aria-label="${c.rank} ${c.symbol}">${c.rank==='J'?'B':c.rank==='Q'?'D':c.rank} ${c.symbol}</span>`).join('');
+    }
+    function finishRound(trigger=''){
+      if(!state||state.phase==='round-end'||state.phase==='match-end')return;
+      clearTimeout(toastTimer);$('toast').classList.remove('show');
+      state.phase='round-end';state.selected=null;state.revealCpu=true;
+      const h=scoreHand(state.hands.human),c=scoreHand(state.hands.cpu);
+      const result=h.points>c.points?'human':c.points>h.points?'cpu':'tie';
+      if(result!=='tie'){
+        const loser=result==='human'?'cpu':'human';
+        state.lives[loser]=Math.max(0,state.lives[loser]-1);state.wins[result]++;
+      }
+      const matchOver=state.lives.human===0||state.lives.cpu===0;
+      if(matchOver)state.phase='match-end';
+      renderAll();
+      $('resultHumanScore').textContent=scoreText(h);
+      $('resultCpuScore').textContent=scoreText(c);
+      $('resultHumanCards').innerHTML=miniatureCards(state.hands.human);
+      $('resultCpuCards').innerHTML=miniatureCards(state.hands.cpu);
+      $('resultIcon').textContent=result==='tie'?'≋':result==='human'?'✦':'♠';
+      $('resultIcon').classList.toggle('is-win',result==='human');
+      $('resultEyebrow').textContent=matchOver?'Match beendet':h.type==='super'||c.type==='super'?'3 Asse · Super-Knack':result==='tie'?'Unentschieden':'Runde '+state.round+' beendet';
+      $('resultTitle').textContent=matchOver?(state.lives.human===0?'Match verloren.':'Match gewonnen!'):result==='human'?'Du gewinnst!':result==='cpu'?'Computer gewinnt.':'Gleichstand!';
+      const special=h.type==='super'||c.type==='super'?((h.type==='super'?'Du hast':'Der Computer hat')+' drei Asse – Super-Knack!'):
+        h.type==='knack'||c.type==='knack'?((h.type==='knack'?'Du hast':'Der Computer hat')+' 31 Punkte – Knack!'):'';
+      const mainReason=special||`${result==='tie'?'Ihr habt beide '+spokenScore(h):result==='human'?'Deine '+spokenScore(h)+' schlagen '+spokenScore(c):'Der Computer hat '+spokenScore(c)+', du hast '+spokenScore(h)}.`;
+      const livesReason=result==='tie'?'Niemand verliert ein Leben.':result==='human'?'Der Computer verliert ein Leben.':'Du verlierst ein Leben.';
+      $('resultReason').textContent=mainReason+' '+(matchOver?'Das Match ist entschieden.':livesReason);
+      $('nextRoundButton').textContent=matchOver?'Neues Spiel ↗':'Nächste Runde →';
+      const finishedSession=state,finishedRound=state.round;
+      setTimeout(()=>{
+        if(state!==finishedSession||state.round!==finishedRound)return;
+        $('resultOverlay').classList.remove('is-hidden');
+        playSound(result==='human'?'win':result==='cpu'?'lose':'select');
+        if(result==='human')launchConfetti();
+        $('nextRoundButton').focus();
+      },640);
+    }
+    function launchConfetti(){
+      if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+      const colors=['#f6d7a0','#e9b95e','#ffffff','#6ac7a5','#d7758f'];
+      for(let i=0;i<52;i++){
+        const piece=document.createElement('i');piece.className='confetti-piece';
+        piece.style.setProperty('--x',random(2,98)+'%');piece.style.setProperty('--c',colors[i%colors.length]);
+        piece.style.setProperty('--t',random(2.2,4.1)+'s');piece.style.setProperty('--delay',random(0,.6)+'s');
+        piece.style.setProperty('--drift',random(-120,120)+'px');piece.style.setProperty('--r',random(-80,80)+'deg');
+        document.body.append(piece);setTimeout(()=>piece.remove(),4900);
+      }
+    }
+
+    // Event-Handler
+    document.querySelectorAll('[data-difficulty]').forEach(btn=>btn.addEventListener('click',()=>startMatch(btn.dataset.difficulty)));
+    document.querySelectorAll('[data-rules]').forEach(btn=>btn.addEventListener('click',openRules));
+    $('closeRules').addEventListener('click',closeRules);
+    $('rulesOkay').addEventListener('click',closeRules);
+    $('rulesOverlay').addEventListener('click',e=>{if(e.target===$('rulesOverlay'))closeRules();});
+    $('menuButton').addEventListener('click',goToMenu);
+    $('resultMenu').addEventListener('click',goToMenu);
+    $('nextRoundButton').addEventListener('click',()=>{
+      $('resultOverlay').classList.add('is-hidden');
+      if(!state)return;
+      if(state.phase==='match-end'){startMatch(state.difficulty);return;}
+      dealRound();
+    });
+    $('swapAllButton').addEventListener('click',()=>doHumanMove({type:'all'}));
+    $('passButton').addEventListener('click',()=>doHumanMove({type:'pass'}));
+    $('knockButton').addEventListener('click',humanKnock);
+    $('soundButton').addEventListener('click',()=>{
+      soundOn=!soundOn;
+      $('soundButton').textContent=soundOn?'♪ Ton an':'♪ Ton aus';
+      $('soundButton').setAttribute('aria-label',soundOn?'Ton ausschalten':'Ton einschalten');
+      if(soundOn)playSound('select');
+    });
+    document.addEventListener('keydown',e=>{
+      if(e.key==='Escape'&&!$('rulesOverlay').classList.contains('is-hidden'))closeRules();
+      if(e.key==='Escape'&&state&&state.phase==='human')state.selected=null,renderAll();
+      if(state&&state.phase==='human'&&$('rulesOverlay').classList.contains('is-hidden')&&['1','2','3'].includes(e.key))selectHandCard(Number(e.key)-1);
+    });
+  </script>
+</body>
+</html>
