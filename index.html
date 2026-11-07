@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#082520">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Super-Knack">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="./icons/icon-192.png">
   <meta name="description" content="Super-Knack – ein animiertes Kartenspiel gegen den Computer mit drei Schwierigkeitsgraden.">
   <title>Super-Knack · Das Kartenspiel</title>
   <style>
@@ -79,10 +86,18 @@
     .game-screen{min-height:100dvh;padding:22px clamp(14px,3.1vw,48px) 26px;background:radial-gradient(ellipse 90% 80% at 51% 35%,#133c35 0%,#092520 62%,#051914 100%)}
     .game-topbar{max-width:1490px;margin:0 auto 19px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
     .game-topbar .brand{font-size:13px}.game-topbar .brand-symbol{height:36px;width:36px;font-size:21px}
-    .game-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
-    .game-topbar .soft-button{padding:10px 13px;font-size:12px;border-radius:11px}
-    .round-counter{background:rgba(255,255,255,.055);border:1px solid var(--line);padding:9px 14px;border-radius:20px;font-size:12px;font-weight:850;letter-spacing:.13em;color:#c9d9cf}
-    .round-counter span{color:var(--gold);font-size:15px;letter-spacing:0;margin-left:4px}
+    .round-menu{position:relative;margin-left:auto;z-index:100}
+    .round-counter{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.055);border:1px solid var(--line);padding:9px 14px;border-radius:20px;font-size:12px;font-weight:850;letter-spacing:.13em;color:#c9d9cf;min-height:38px;transition:border-color .2s,background .2s}
+    .round-counter:hover,.round-counter[aria-expanded="true"]{border-color:rgba(233,191,119,.55);background:rgba(255,255,255,.10)}
+    .round-counter #roundNumber{color:var(--gold);font-size:15px;letter-spacing:0}
+    .round-chevron{display:inline-block;font-size:12px;line-height:1;color:var(--gold);transition:transform .2s;margin-left:5px}
+    .round-counter[aria-expanded="true"] .round-chevron{transform:rotate(180deg)}
+    .round-dropdown{position:absolute;right:0;top:calc(100% + 9px);width:205px;padding:8px;border:1px solid rgba(238,202,138,.32);border-radius:17px;background:linear-gradient(145deg,rgba(28,72,61,.98),rgba(7,35,31,.99));box-shadow:0 18px 48px rgba(0,0,0,.42);backdrop-filter:blur(16px);animation:dropdownIn .18s cubic-bezier(.2,.8,.2,1) both}
+    .round-dropdown .soft-button{width:100%;display:flex;align-items:center;justify-content:space-between;gap:9px;text-align:left;border:0;background:transparent;border-radius:10px;box-shadow:none;padding:12px 13px;font-size:13px;min-height:43px}
+    .round-dropdown .soft-button:hover{background:rgba(241,212,153,.12);transform:none}
+    .round-dropdown .menu-icon{font-size:18px;color:var(--gold);font-weight:500}
+    .round-dropdown .menu-separator{height:1px;background:var(--line);margin:5px 8px}
+    @keyframes dropdownIn{from{opacity:0;transform:translateY(-7px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
     .game-layout{max-width:1490px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 298px;gap:19px;align-items:stretch}
     .table-surface{position:relative;min-height:690px;border:2px solid rgba(215,174,102,.44);border-radius:clamp(28px,5vw,65px);background:radial-gradient(ellipse 67% 62% at 50% 52%,#1a6554 0%,#155044 52%,#103b33 100%);box-shadow:0 6px 0 #092820,0 10px 0 2px #99713c,0 17px 0 7px #1e3026,var(--shadow),inset 0 0 0 9px rgba(3,29,26,.33),inset 0 0 80px rgba(6,30,25,.53);overflow:hidden;display:flex;flex-direction:column;justify-content:space-around;align-items:center;padding:19px 22px 23px;isolation:isolate}
     .table-surface:before{content:"";position:absolute;inset:32px;border:1px solid rgba(245,224,165,.13);border-radius:42%;pointer-events:none;z-index:-1}
@@ -110,8 +125,11 @@
     .turn-glow{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);width:210px;height:4px;border-radius:50%;background:rgba(242,206,124,.5);filter:blur(12px);opacity:0;transition:opacity .4s}
     .seat--active .turn-glow{opacity:1}
     .card{position:relative;display:block;padding:0;border:0;background:none;color:inherit;width:clamp(76px,8.2vw,107px);aspect-ratio:0.704;flex:none;perspective:900px;transition:transform .2s,filter .2s;will-change:transform}
-    .card--interactive:hover:not(:disabled){transform:translateY(-8px)}
+    .card--interactive:hover:not(:disabled){transform:translateY(-9px) rotate(-1deg);filter:drop-shadow(0 9px 9px rgba(0,0,0,.2))}
+    .card--interactive:active:not(:disabled){transform:translateY(-3px) scale(.96)}
     .card--selected{transform:translateY(-15px) rotate(-2deg)!important;filter:drop-shadow(0 0 12px rgba(245,203,118,.48))}
+    .card--selected .card__inner{animation:selectCard .3s cubic-bezier(.2,.8,.3,1)}
+    @keyframes selectCard{0%{scale:.94}65%{scale:1.045}100%{scale:1}}
     .card__inner{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .52s cubic-bezier(.25,.75,.25,1)}
     .card--face-down .card__inner{transform:rotateY(180deg)}
     .card--reveal .card__inner{animation:revealCard .62s cubic-bezier(.2,.8,.2,1) both}
@@ -128,9 +146,16 @@
     .card__back{transform:rotateY(180deg);border:5px solid #f3dfb4;background:repeating-linear-gradient(45deg,rgba(237,190,115,.075) 0 2px,transparent 2px 8px),repeating-linear-gradient(-45deg,rgba(237,190,115,.05) 0 2px,transparent 2px 8px),#123934;display:grid;place-items:center}
     .card__back:before{content:"";position:absolute;inset:5px;border:1px solid #ae8651;border-radius:4px}
     .card__back:after{content:"✦";width:49%;aspect-ratio:1;display:grid;place-items:center;border:2px solid rgba(226,183,104,.83);transform:rotate(45deg);color:#dcb17a;font:25px Georgia,serif;text-shadow:0 0 9px rgba(243,213,139,.45)}
-    .card--deal{animation:dealCard .55s cubic-bezier(.15,.85,.3,1.12) both;animation-delay:calc(var(--deal-index,0) * 72ms)}
-    @keyframes dealCard{from{opacity:0;transform:translateY(-55px) scale(.78) rotate(-8deg)}to{opacity:1;transform:translateY(0) scale(1) rotate(0)}}
-    .flying-card{position:fixed!important;z-index:300!important;pointer-events:none!important;transition:none!important;filter:drop-shadow(0 14px 18px rgba(0,0,0,.25));margin:0!important}
+    /* Neue Karten fliegen vom Stapel an ihren tatsächlichen Bildschirmplatz. */
+    .card--deal{animation:dealCard .65s cubic-bezier(.22,.7,.25,1) backwards;animation-delay:calc(var(--deal-index,0) * 62ms)}
+    @keyframes dealCard{
+      0%{opacity:0;transform:translate(var(--deal-x,0px),var(--deal-y,-110px)) scale(.37) rotate(-15deg);filter:brightness(1.45)}
+      68%{opacity:1;transform:translate(0,-8px) scale(1.045) rotate(2deg);filter:brightness(1.08)}
+      100%{opacity:1;transform:translate(0,0) scale(1) rotate(0);filter:brightness(1)}
+    }
+    /* Sichtbare, übereinander schwebende Karten beim Tauschen */
+    .flying-card{position:fixed!important;z-index:400!important;pointer-events:none!important;visibility:visible!important;opacity:1;transition:none!important;animation:none!important;filter:drop-shadow(0 15px 17px rgba(0,0,0,.42)) drop-shadow(0 0 11px rgba(255,215,142,.24));margin:0!important;transform-origin:center center}
+    .flying-card .card__inner{animation:none!important;transition:none!important}
 
     /* SIDEBAR */
     .side-panel{display:flex;flex-direction:column;gap:13px}
@@ -198,15 +223,15 @@
     }
     @media(max-width:780px){
       .start-content{padding:24px 20px 25px}.start-screen:after{inset:9px;border-radius:20px}.start-body{grid-template-columns:1fr;gap:0}.intro{text-align:center;margin:24px auto 18px}.intro-title{font-size:clamp(76px,15vw,125px)}.intro-title span{font-size:22px}.intro-lead{margin:0 auto 27px}.difficulty-list{margin:auto;text-align:left}.hero-art{grid-row:1;height:240px;order:-1;pointer-events:none}.hero-halo{width:255px;height:255px}.showcase-card{width:105px;height:150px;border-width:5px;border-radius:10px}.showcase-card .center{font-size:61px}.showcase-card .corner{font-size:16px;top:7px;left:7px}.showcase-card .corner small{font-size:13px}.showcase-ribbon{padding:9px 13px;font-size:9px;top:82%}.start-bottom{padding-top:26px}
-      .game-layout{grid-template-columns:1fr}.table-surface{min-height:620px}.side-panel{display:grid;grid-template-columns:1fr 1fr;align-items:start}.status-section{min-height:0}.action-section{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.action-section .eyebrow{grid-column:1/-1}.action-section button{min-height:49px}.hint-section{grid-column:1/-1}
+      .game-layout{grid-template-columns:1fr}.table-surface{min-height:620px}.side-panel{display:grid;grid-template-columns:1fr;align-items:start}.status-section{display:none}.action-section{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.action-section .eyebrow{grid-column:1/-1}.action-section button{min-height:49px}.score-section{grid-column:1/-1}.hint-section{grid-column:1/-1}
       .game-screen{padding:17px 13px 24px}
     }
     @media(max-width:480px){
       .start-top .soft-button{padding:9px 11px;font-size:11px}.start-content{padding:20px 17px 22px}.brand{font-size:12px}.brand-symbol{height:34px;width:34px;font-size:20px}.intro{margin-top:13px}.intro-title{font-size:clamp(69px,18vw,95px);margin:14px 0 16px}.intro-title span{font-size:17px;letter-spacing:.38em}.intro-lead{font-size:15px;margin-bottom:24px}.difficulty-card{padding:10px 13px;gap:12px}.difficulty-icon{width:42px;height:44px;font-size:21px}.difficulty-text strong{font-size:16px}.difficulty-text small{font-size:11px}.hero-art{height:215px}.start-bottom{font-size:10px}
-      .game-topbar{gap:10px}.game-topbar .brand{font-size:12px}.game-topbar .brand-symbol{display:none}.game-topbar .soft-button{padding:8px 9px;font-size:11px}.game-actions{gap:6px}.round-counter{padding:7px 10px;font-size:10px}.round-counter span{font-size:12px}
+      .game-topbar{gap:10px}.game-topbar .brand{font-size:12px}.game-topbar .brand-symbol{display:none}.round-counter{padding:8px 11px;font-size:10px}.round-counter #roundNumber{font-size:13px}.round-dropdown{width:195px}
       .table-surface{min-height:555px;border-radius:34px;padding:20px 10px;box-shadow:0 5px 0 #092820,0 8px 0 2px #99713c,0 14px 0 5px #1e3026,var(--shadow),inset 0 0 0 7px rgba(3,29,26,.33)}.table-surface:before{inset:17px}
       .card{width:clamp(72px,21vw,92px)}.card__corner{font-size:17px}.card__corner small{font-size:13px}.card__suit{font-size:clamp(40px,11vw,58px)}.hand{min-height:118px;gap:9px}.market-cards{gap:9px}.seat{gap:6px}.seat-info{gap:8px}.avatar{width:31px;height:31px;font-size:10px}.seat-title{font-size:12px}.seat-subtitle{font-size:10px}.lives{font-size:12px;padding:4px 8px}.middle-zone{gap:7px;margin:8px 0}.market-heading{font-size:9px}.market-heading:before,.market-heading:after{width:27px}.market-note{font-size:10px}.deck-decoration{display:none}
-      .side-panel{gap:9px}.side-section{padding:14px;border-radius:15px}.status-section{min-height:145px}.status-section h2{font-size:22px}.status-section p{font-size:11px}.turn-indicator{font-size:9px;margin-bottom:11px}.score-section{display:flex;flex-direction:column}.score-grid{gap:7px}.score-tile{padding:9px 7px}.score-tile strong{font-size:28px;margin:4px 0 0}.score-tile .score-label{font-size:9px}.score-tile small{font-size:9px}.action-section button{font-size:12px;padding:12px 10px;min-height:58px}.action-section .action-icon{font-size:16px}.action-section button small{font-size:8px}.action-section button{flex-direction:column;justify-content:center;align-items:center;gap:3px;text-align:center}.action-section button .action-icon{display:none}.hint-section{margin:0}.game-footer{font-size:10px}
+      .side-panel{gap:9px}.side-section{padding:14px;border-radius:15px}.score-section{display:flex;flex-direction:column}.score-grid{gap:7px}.score-tile{padding:9px 7px}.score-tile strong{font-size:28px;margin:4px 0 0}.score-tile .score-label{font-size:9px}.score-tile small{font-size:9px}.action-section button{font-size:12px;padding:12px 10px;min-height:58px}.action-section .action-icon{font-size:16px}.action-section button small{font-size:8px}.action-section button{flex-direction:column;justify-content:center;align-items:center;gap:3px;text-align:center}.action-section button .action-icon{display:none}.hint-section{margin:0}.game-footer{font-size:10px}
       .modal-panel{padding:30px 21px 23px}.modal-panel h2{font-size:31px}.result-actions button{min-width:120px;padding:13px 9px}.showdown{gap:8px}.showdown-side{padding:10px}.showdown-side strong{font-size:25px}
     }
     @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
@@ -246,11 +271,14 @@
   <main id="gameScreen" class="game-screen is-hidden">
     <header class="game-topbar">
       <div class="brand"><span class="brand-symbol" aria-hidden="true">♠</span> SUPER-KNACK</div>
-      <div class="round-counter">RUNDE <span id="roundNumber">01</span></div>
-      <div class="game-actions">
-        <button type="button" id="soundButton" class="soft-button" aria-label="Ton ausschalten">♪ Ton an</button>
-        <button type="button" class="soft-button" data-rules>Regeln</button>
-        <button type="button" id="menuButton" class="soft-button">↖ Menü</button>
+      <div class="round-menu" id="roundMenu">
+        <button type="button" class="round-counter" id="roundMenuToggle" aria-haspopup="menu" aria-controls="roundDropdown" aria-expanded="false">RUNDE <span id="roundNumber">01</span><span class="round-chevron" aria-hidden="true">⌄</span></button>
+        <div class="round-dropdown is-hidden" id="roundDropdown" role="menu" aria-label="Spielmenü">
+          <button type="button" id="soundButton" class="soft-button" role="menuitem" aria-label="Ton ausschalten"><span>Ton an</span><span class="menu-icon" aria-hidden="true">♪</span></button>
+          <button type="button" class="soft-button" role="menuitem" data-rules><span>Regeln</span><span class="menu-icon" aria-hidden="true">?</span></button>
+          <div class="menu-separator" role="separator"></div>
+          <button type="button" id="menuButton" class="soft-button" role="menuitem"><span>Menü</span><span class="menu-icon" aria-hidden="true">↖</span></button>
+        </div>
       </div>
     </header>
     <div class="game-layout">
@@ -278,18 +306,18 @@
           <h2 id="statusTitle">Deine Entscheidung.</h2>
           <p id="statusText">Wähle eine Karte aus deiner Hand und danach eine Karte in der Mitte.</p>
         </section>
+        <section class="side-section action-section">
+          <div class="eyebrow">Dein Zug</div>
+          <button type="button" id="swapAllButton" class="gold-button"><span>Alle 3 tauschen</span><span class="action-icon" aria-hidden="true">⇄</span></button>
+          <button type="button" id="passButton" class="soft-button"><span>Schieben</span><small>PASSEN</small></button>
+          <button type="button" id="knockButton" class="soft-button"><span>Klopfen</span><small>LETZTE RUNDE</small></button>
+        </section>
         <section class="side-section score-section">
           <div class="eyebrow">Aktuelle Hand</div>
           <div class="score-grid">
             <div class="score-tile"><span class="score-label">Deine Punkte</span><strong id="humanScore">0</strong><small id="humanScoreType">–</small></div>
             <div class="score-tile is-secret"><span class="score-label">Computer</span><strong id="cpuScore">??</strong><small id="cpuScoreType">Verdeckt</small></div>
           </div>
-        </section>
-        <section class="side-section action-section">
-          <div class="eyebrow">Dein Zug</div>
-          <button type="button" id="swapAllButton" class="gold-button"><span>Alle 3 tauschen</span><span class="action-icon" aria-hidden="true">⇄</span></button>
-          <button type="button" id="passButton" class="soft-button"><span>Schieben</span><small>PASSEN</small></button>
-          <button type="button" id="knockButton" class="soft-button"><span>Klopfen</span><small>LETZTE RUNDE</small></button>
         </section>
         <section class="side-section hint-section">
           <div class="eyebrow">So wird gespielt</div>
@@ -401,9 +429,16 @@
       $('gameScreen').classList.toggle('is-hidden',name!=='game');
       window.scrollTo({top:0,behavior:'instant'});
     }
-    function openRules(){ $('rulesOverlay').classList.remove('is-hidden');$('closeRules').focus(); }
+    function setRoundMenuOpen(open,restoreFocus=false){
+      $('roundDropdown').classList.toggle('is-hidden',!open);
+      $('roundMenuToggle').setAttribute('aria-expanded',String(open));
+      if(open) $('roundDropdown').querySelector('button').focus();
+      else if(restoreFocus&&!$('gameScreen').classList.contains('is-hidden')) $('roundMenuToggle').focus();
+    }
+    function openRules(){ setRoundMenuOpen(false);$('rulesOverlay').classList.remove('is-hidden');$('closeRules').focus(); }
     function closeRules(){ $('rulesOverlay').classList.add('is-hidden'); }
     function goToMenu() {
+      setRoundMenuOpen(false);
       $('resultOverlay').classList.add('is-hidden');closeRules();
       state = null;showScreen('start');
     }
@@ -427,7 +462,7 @@
       state.market=state.deck.splice(0,3);
       renderAll(true);
       playSound('deal');
-      await sleep(920);
+      await sleep(window.matchMedia('(prefers-reduced-motion: reduce)').matches?80:1190);
       if(!state||state!==session||state.round!==roundId||state.phase!=='dealing')return;
       const humanScore=scoreHand(state.hands.human),cpuScore=scoreHand(state.hands.cpu);
       if(humanScore.points>=31 || cpuScore.points>=31){finishRound('Sofortige Gewinnkombination beim Austeilen.');return;}
@@ -444,15 +479,30 @@
       btn.innerHTML=`<span class="card__inner"><span class="card__front"><span class="card__corner">${rank}<small>${card.symbol}</small></span><span class="card__suit">${card.symbol}</span><span class="card__corner card__corner--bottom">${rank}<small>${card.symbol}</small></span></span><span class="card__back"></span></span>`;
       return btn;
     }
-    function renderCards(deal=false){
+    function renderCards(deal=false,dealTarget='all'){
       if(!state)return;
       const playable=state.phase==='human';
       const cpuHand=$('cpuHand'),humanHand=$('humanHand'),market=$('marketCards');
-      cpuHand.replaceChildren(...state.hands.cpu.map((c,i)=>cardElement(c,{faceDown:!state.revealCpu,reveal:state.revealCpu,owner:'cpu',index:i,deal})));
-      humanHand.replaceChildren(...state.hands.human.map((c,i)=>cardElement(c,{interactive:playable,selected:state.selected===i,owner:'human',index:i,deal})));
+      const dealHand=deal&&dealTarget==='all';
+      cpuHand.replaceChildren(...state.hands.cpu.map((c,i)=>cardElement(c,{faceDown:!state.revealCpu,reveal:state.revealCpu,owner:'cpu',index:i,deal:dealHand})));
+      humanHand.replaceChildren(...state.hands.human.map((c,i)=>cardElement(c,{interactive:playable,selected:state.selected===i,owner:'human',index:i,deal:dealHand})));
       market.replaceChildren(...state.market.map((c,i)=>cardElement(c,{interactive:playable,owner:'market',index:i,deal})));
       humanHand.querySelectorAll('.card').forEach(card=>card.addEventListener('click',()=>selectHandCard(Number(card.dataset.index))));
       market.querySelectorAll('.card').forEach(card=>card.addEventListener('click',()=>selectMarketCard(Number(card.dataset.index))));
+      if(deal){
+        const table=document.querySelector('.table-surface').getBoundingClientRect();
+        const deck=$('.deck-stack');
+        const origin=deck&&getComputedStyle(deck.parentElement).display!=='none'?deck.getBoundingClientRect():null;
+        const x=origin?origin.left+origin.width/2:table.left+table.width/2;
+        const y=origin?origin.top+origin.height/2:table.top+table.height/2;
+        const flying=dealTarget==='all'?[...cpuHand.children,...market.children,...humanHand.children]:[...market.children];
+        flying.forEach((card,index)=>{
+          const r=card.getBoundingClientRect();
+          card.style.setProperty('--deal-index',index);
+          card.style.setProperty('--deal-x',(x-r.left-r.width/2).toFixed(1)+'px');
+          card.style.setProperty('--deal-y',(y-r.top-r.height/2).toFixed(1)+'px');
+        });
+      }
     }
     function hearts(n){return Array.from({length:3},(_,i)=>`<span class="${i<n?'':'lost'}" aria-hidden="true">♥</span>`).join('')}
     function renderUI() {
@@ -496,7 +546,7 @@
       $('marketNote').textContent=finalTurn?'Letzte Chance auf bessere Karten':yourTurn&&state.selected!==null?'Wähle eine Karte zum Tausch':yourTurn?'Eine oder alle drei Karten tauschen':'Drei offene Karten zum Tauschen';
       $('actionHint').innerHTML=finalTurn?'<strong>Letzter Zug:</strong> Danach werden die Handkarten aufgedeckt und verglichen.':state.selected!==null?'<strong>Karte markiert.</strong> Klicke eine offene Karte zum Tauschen. Ein Klick auf deine Karte hebt die Auswahl auf.':'<strong>Einzeln tauschen:</strong> Erst eine eigene Karte anklicken, dann eine der drei offenen Karten.';
     }
-    function renderAll(deal=false){renderCards(deal);renderUI();}
+    function renderAll(deal=false,dealTarget='all'){renderCards(deal,dealTarget);renderUI();}
     function selectHandCard(index){
       if(!state||state.phase!=='human')return;
       state.selected=state.selected===index?null:index;
@@ -507,30 +557,78 @@
       if(state.selected===null){showToast('Wähle zuerst eine deiner Handkarten.');return;}
       doHumanMove({type:'single',i:state.selected,j:index});
     }
+    // Karten bewegen sich sichtbar entlang gekrümmter Bahnen zwischen Hand und Mitte.
+    // Beim Computer bleiben eingehende Karten verdeckt; ausgehende werden erst am Ziel aufgedeckt.
     async function animateExchange(owner,type,i,j) {
+      if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
       const pairs=type==='all'?[[0,0],[1,1],[2,2]]:[[i,j]];
-      const promises=[];
-      for(const [handIndex,marketIndex] of pairs){
-        const a=document.querySelector(`#${owner==='human'?'humanHand':'cpuHand'} .card[data-index="${handIndex}"]`);
-        const b=document.querySelector(`#marketCards .card[data-index="${marketIndex}"]`);
-        if(!a||!b)continue;
-        const ra=a.getBoundingClientRect(),rb=b.getBoundingClientRect();
-        a.style.visibility='hidden';b.style.visibility='hidden';
-        const fly=(source,r1,r2,rotation)=>{
-          const clone=source.cloneNode(true);clone.classList.remove('card--selected','card--interactive','card--deal');clone.classList.add('flying-card');
-          clone.style.left=r1.left+'px';clone.style.top=r1.top+'px';clone.style.width=r1.width+'px';clone.style.height=r1.height+'px';
-          document.body.append(clone);
-          const dx=r2.left-r1.left,dy=r2.top-r1.top;
-          if(typeof clone.animate==='function'){
-            const animation=clone.animate([{transform:'translate(0,0) rotate(0deg) scale(1)'},{transform:`translate(${dx}px,${dy}px) rotate(${rotation}deg) scale(1.035)`,offset:.6},{transform:`translate(${dx}px,${dy}px) rotate(0deg) scale(1)`}],{duration:480,easing:'cubic-bezier(.34,.08,.2,1)',fill:'forwards'});
-            return animation.finished.catch(()=>{}).then(()=>clone.remove());
-          }
-          clone.remove();return sleep(300);
-        };
-        promises.push(fly(a,ra,rb,-8),fly(b,rb,ra,8));
+      const flying=[];
+      const originals=[];
+      const animations=[];
+      const duration=type==='all'?820:740;
+      const handId=owner==='human'?'humanHand':'cpuHand';
+
+      function fly(source,from,to,rotation,pairIndex,toMarket){
+        // Erst klonen, dann Originale verstecken: sonst erbt der Klon visibility:hidden.
+        const clone=source.cloneNode(true);
+        clone.classList.remove('card--selected','card--interactive','card--deal','card--reveal');
+        clone.classList.add('flying-card');
+        clone.disabled=true;
+        clone.setAttribute('aria-hidden','true');
+        clone.style.cssText+=`;left:${from.left}px;top:${from.top}px;width:${from.width}px;height:${from.height}px;visibility:visible!important;`;
+        document.body.append(clone);
+        flying.push(clone);
+
+        const dx=to.left-from.left,dy=to.top-from.top;
+        const lift=Math.min(95,Math.max(45,Math.abs(dy)*.22));
+        const side=(toMarket?1:-1)*Math.min(29,Math.max(13,Math.abs(dx)*.12));
+        const delay=type==='all'?pairIndex*95:0;
+        const frames=[
+          {offset:0,transform:'translate(0px,0px) rotate(0deg) scale(1)'},
+          {offset:.22,transform:`translate(${dx*.18+side*.45}px,${dy*.18-lift*.85}px) rotate(${rotation*.65}deg) scale(1.07)`},
+          {offset:.50,transform:`translate(${dx*.5+side}px,${dy*.5-lift}px) rotate(${rotation}deg) scale(1.12)`},
+          {offset:.82,transform:`translate(${dx*.84+side*.35}px,${dy*.84-lift*.35}px) rotate(${rotation*.4}deg) scale(1.05)`},
+          {offset:1,transform:`translate(${dx}px,${dy}px) rotate(0deg) scale(1)`}
+        ];
+        if(typeof clone.animate!=='function'){
+          clone.style.transform=`translate(${dx}px,${dy}px)`;
+          return;
+        }
+        const opts={duration,delay,easing:'cubic-bezier(.22,.66,.26,1)',fill:'both'};
+        animations.push(clone.animate(frames,opts));
+        if(owner==='cpu'){
+          const inner=clone.querySelector('.card__inner');
+          const flipFrames=toMarket
+            ?[{offset:0,transform:'rotateY(180deg)'},{offset:.67,transform:'rotateY(180deg)'},{offset:1,transform:'rotateY(0deg)'}]
+            :[{offset:0,transform:'rotateY(0deg)'},{offset:.28,transform:'rotateY(0deg)'},{offset:.69,transform:'rotateY(180deg)'},{offset:1,transform:'rotateY(180deg)'}];
+          if(inner)animations.push(inner.animate(flipFrames,opts));
+        }
       }
-      playSound('deal');
-      await Promise.all(promises);
+
+      try{
+        for(const [pairIndex,[handIndex,marketIndex]] of pairs.entries()){
+          const hand=document.querySelector(`#${handId} .card[data-index="${handIndex}"]`);
+          const market=document.querySelector(`#marketCards .card[data-index="${marketIndex}"]`);
+          if(!hand||!market)continue;
+          const rh=hand.getBoundingClientRect(),rm=market.getBoundingClientRect();
+          fly(hand,rh,rm,-12,pairIndex,true);
+          fly(market,rm,rh,12,pairIndex,false);
+          hand.style.visibility='hidden';market.style.visibility='hidden';
+          originals.push(hand,market);
+        }
+        if(!flying.length)return;
+        playSound('deal');
+        if(animations.length){
+          await Promise.all(animations.map(a=>a.finished.catch(()=>{})));
+        }else{
+          await sleep(duration+(type==='all'?190:0));
+        }
+      }finally{
+        animations.forEach(a=>a.cancel());
+        flying.forEach(el=>el.remove());
+        // Auch bei einem abgebrochenen Spielzug keine unsichtbaren Karten zurücklassen.
+        originals.forEach(el=>el.style.removeProperty('visibility'));
+      }
     }
     function exchange(owner,move){
       if(move.type==='single'){
@@ -556,7 +654,7 @@
         state.deck=shuffle(allCards().filter(c=>!held.has(c.id)));
       }
       state.market=state.deck.splice(0,3);
-      state.passes=0;renderAll(true);playSound('deal');showToast('Beide haben geschoben: 3 neue Karten!');
+      state.passes=0;renderAll(true,'market');playSound('deal');showToast('Beide haben geschoben: 3 neue Karten!');
     }
     function checkInstantWin(){
       const hs=scoreHand(state.hands.human),cs=scoreHand(state.hands.cpu);
@@ -732,6 +830,22 @@
       }
     }
 
+    // Dropdown: per Klick, Tastatur oder außerhalb schließen.
+    $('roundMenuToggle').addEventListener('click',()=>{
+      const isOpen=$('roundMenuToggle').getAttribute('aria-expanded')==='true';
+      setRoundMenuOpen(!isOpen);
+    });
+    document.addEventListener('pointerdown',e=>{
+      if(!$('roundMenu').contains(e.target))setRoundMenuOpen(false);
+    });
+    $('roundDropdown').addEventListener('keydown',e=>{
+      if(!['ArrowDown','ArrowUp','Home','End'].includes(e.key))return;
+      e.preventDefault();
+      const items=[...$('roundDropdown').querySelectorAll('button')];
+      const current=items.indexOf(document.activeElement);
+      const next=e.key==='Home'?0:e.key==='End'?items.length-1:(current+(e.key==='ArrowDown'?1:-1)+items.length)%items.length;
+      items[next].focus();
+    });
     // Event-Handler
     document.querySelectorAll('[data-difficulty]').forEach(btn=>btn.addEventListener('click',()=>startMatch(btn.dataset.difficulty)));
     document.querySelectorAll('[data-rules]').forEach(btn=>btn.addEventListener('click',openRules));
@@ -751,15 +865,26 @@
     $('knockButton').addEventListener('click',humanKnock);
     $('soundButton').addEventListener('click',()=>{
       soundOn=!soundOn;
-      $('soundButton').textContent=soundOn?'♪ Ton an':'♪ Ton aus';
+      $('soundButton').querySelector('span').textContent=soundOn?'Ton an':'Ton aus';
       $('soundButton').setAttribute('aria-label',soundOn?'Ton ausschalten':'Ton einschalten');
       if(soundOn)playSound('select');
+      setRoundMenuOpen(false,true);
     });
     document.addEventListener('keydown',e=>{
-      if(e.key==='Escape'&&!$('rulesOverlay').classList.contains('is-hidden'))closeRules();
-      if(e.key==='Escape'&&state&&state.phase==='human')state.selected=null,renderAll();
-      if(state&&state.phase==='human'&&$('rulesOverlay').classList.contains('is-hidden')&&['1','2','3'].includes(e.key))selectHandCard(Number(e.key)-1);
+      if(e.key==='Escape'){
+        if(!$('rulesOverlay').classList.contains('is-hidden')){closeRules();return;}
+        if($('roundMenuToggle').getAttribute('aria-expanded')==='true'){
+          setRoundMenuOpen(false,true);return;
+        }
+        if(state&&state.phase==='human'){state.selected=null;renderAll();}
+        return;
+      }
+      if(state&&state.phase==='human'&&$('rulesOverlay').classList.contains('is-hidden')&&$('roundDropdown').classList.contains('is-hidden')&&['1','2','3'].includes(e.key))selectHandCard(Number(e.key)-1);
     });
+    // Die PWA braucht HTTPS oder localhost; die HTML-Datei bleibt ansonsten spielbar.
+    if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){
+      window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(error=>console.warn('Offline-Modus nicht verfügbar:',error)));
+    }
   </script>
 </body>
 </html>
