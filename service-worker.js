@@ -1,6 +1,6 @@
 /* Offline-fähige PWA – die eigene Spielversion vollständig lokal speichern. */
 'use strict';
-const CACHE_NAME = 'super-knack-offline-v2';
+const CACHE_NAME = 'super-knack-offline-v3';
 const FILES = [
   './',
   './index.html',

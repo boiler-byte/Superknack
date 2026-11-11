@@ -339,7 +339,7 @@
         <div class="rule-row"><span class="rule-number">03</span><p>Drei Karten mit gleichem Wert ergeben <strong>30½ Punkte</strong>. <strong>31 Punkte</strong> sind Knack und gewinnen die Runde sofort.</p></div>
         <div class="rule-row"><span class="rule-number">04</span><p><strong>Drei Asse sind Super-Knack:</strong> Du gewinnst die Runde sofort – auch gegen 31 Punkte.</p></div>
         <div class="rule-row"><span class="rule-number">05</span><p>Mit <strong>Schieben</strong> setzt du aus. Schieben beide, werden die offenen Karten erneuert. Mit <strong>Klopfen</strong> erhält dein Gegner genau einen letzten Zug, dann werden die Punkte verglichen.</p></div>
-        <div class="rule-row"><span class="rule-number">06</span><p>Wer eine Runde verliert, verliert <strong>ein Leben</strong>. Bei Gleichstand verliert niemand. Wer zuerst keine Leben mehr hat, verliert das Match.</p></div>
+        <div class="rule-row"><span class="rule-number">06</span><p>Bei gleichen Punkten entscheidet die <strong>Farbe</strong>: <strong>Kreuz vor Pik vor Herz vor Karo</strong>. Nur bei gleicher Punktzahl und gleicher stärkster Farbe bleibt es unentschieden. Der Verlierer verliert <strong>ein Leben</strong>.</p></div>
       </div>
       <button type="button" id="rulesOkay" class="gold-button rules-close-button">Verstanden</button>
     </div>
@@ -369,6 +369,8 @@
       { id:'clubs', symbol:'♣', name:'Kreuz', red:false },
       { id:'spades', symbol:'♠', name:'Pik', red:false }
     ];
+    // Farb-Rangfolge bei Punktgleichheit (aufsteigend): Karo < Herz < Pik < Kreuz.
+    const SUIT_PRIORITY = { diamonds:1, hearts:2, spades:3, clubs:4 };
     const RANKS = ['7','8','9','10','J','Q','K','A'];
     const RANK_VALUE = { '7':7, '8':8, '9':9, '10':10, J:10, Q:10, K:10, A:11 };
     const DIFFICULTIES = { easy:'Leicht', medium:'Mittel', hard:'Schwer' };
@@ -391,13 +393,19 @@
     }
     function scoreHand(hand) {
       if(!hand || hand.length !== 3) return { points:0, type:'normal', label:'–', suit:null };
-      if(hand.every(c=>c.rank==='A')) return { points:33, type:'super', label:'Super-Knack', suit:null };
+      const strongestSuit=hand.reduce((best,c)=>!best||SUIT_PRIORITY[c.suit]>SUIT_PRIORITY[best]?c.suit:best,null);
+      if(hand.every(c=>c.rank==='A')) return { points:33, type:'super', label:'Super-Knack', suit:strongestSuit };
       const sums = SUITS.map(s => ({ id:s.id,name:s.name,total:hand.filter(c=>c.suit===s.id).reduce((a,c)=>a+c.value,0) }));
-      const best = sums.reduce((a,b)=>b.total>a.total?b:a);
+      const best = sums.reduce((a,b)=>b.total>a.total||(b.total===a.total&&SUIT_PRIORITY[b.id]>SUIT_PRIORITY[a.id])?b:a);
       if(best.total===31) return { points:31, type:'knack', label:'Knack!', suit:best.id };
-      if(hand.every(c=>c.rank===hand[0].rank)) return { points:30.5, type:'triple', label:'Drilling', suit:null };
+      if(hand.every(c=>c.rank===hand[0].rank)) return { points:30.5, type:'triple', label:'Drilling', suit:strongestSuit };
       return { points:best.total, type:'normal', label:best.name, suit:best.id };
     }
+    function compareScores(a,b){
+      if(a.points!==b.points)return Math.sign(a.points-b.points);
+      return Math.sign((SUIT_PRIORITY[a.suit]||0)-(SUIT_PRIORITY[b.suit]||0));
+    }
+    function suitName(suit){return SUITS.find(s=>s.id===suit)?.name||'keine Farbe';}
     function scoreText(score){return score.type==='super'?'33':score.points===30.5?'30½':String(score.points)}
     function spokenScore(score){return score.type==='super'?'Super-Knack':score.type==='knack'?'Knack mit 31 Punkten':score.points===30.5?'30½ Punkte':score.points+' Punkte'}
 
@@ -647,14 +655,60 @@
       await sleep(130);
       return !!state&&state===session&&state.round===roundId;
     }
-    function refreshMarket(){
+    // Nach zweimaligem Schieben fliegen die alten Mittelkarten zum Stapel zurück.
+    // Erst danach werden drei neue Karten sichtbar vom Stapel in die Mitte gegeben.
+    async function refreshMarket(){
+      if(!state)return false;
+      const session=state,roundId=state.round;
+      const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const market=$('marketCards');
+      if(!reduced){
+        const cards=[...market.querySelectorAll('.card')];
+        const table=document.querySelector('.table-surface').getBoundingClientRect();
+        const deck=document.querySelector('.deck-stack');
+        const deckRect=deck&&getComputedStyle(deck.parentElement).display!=='none'?deck.getBoundingClientRect():null;
+        const targetX=deckRect?deckRect.left+deckRect.width/2:table.left+table.width/2;
+        const targetY=deckRect?deckRect.top+deckRect.height/2:table.top+table.height/2;
+        const clones=[],animations=[];
+        try{
+          cards.forEach((card,i)=>{
+            const from=card.getBoundingClientRect();
+            const clone=card.cloneNode(true);
+            clone.classList.remove('card--interactive','card--selected','card--deal','card--reveal');
+            clone.classList.add('flying-card');
+            clone.disabled=true;clone.setAttribute('aria-hidden','true');
+            clone.style.cssText+=`;left:${from.left}px;top:${from.top}px;width:${from.width}px;height:${from.height}px;visibility:visible!important;`;
+            document.body.append(clone);clones.push(clone);
+            card.style.visibility='hidden';
+            const dx=targetX-from.left-from.width/2,dy=targetY-from.top-from.height/2;
+            if(typeof clone.animate==='function'){
+              animations.push(clone.animate([
+                {offset:0,opacity:1,transform:'translate(0,0) rotate(0deg) scale(1)'},
+                {offset:.48,opacity:1,transform:`translate(${dx*.55}px,${dy*.45-35}px) rotate(${i===1?0:i===0?-9:9}deg) scale(.91)`},
+                {offset:1,opacity:0,transform:`translate(${dx}px,${dy}px) rotate(${(i-1)*18}deg) scale(.27)`}
+              ],{duration:440,delay:i*65,easing:'cubic-bezier(.35,.1,.6,1)',fill:'both'}));
+            }
+          });
+          if(animations.length)await Promise.all(animations.map(a=>a.finished.catch(()=>{})));
+        }finally{
+          animations.forEach(a=>a.cancel());
+          clones.forEach(clone=>clone.remove());
+          cards.forEach(card=>card.style.removeProperty('visibility'));
+        }
+      }
+      if(!state||state!==session||state.round!==roundId)return false;
       // Wenn der Stapel leer ist, wird aus allen momentan nicht gehaltenen Karten neu gemischt.
       if(state.deck.length<3){
         const held=new Set([...state.hands.human,...state.hands.cpu].map(c=>c.id));
         state.deck=shuffle(allCards().filter(c=>!held.has(c.id)));
       }
       state.market=state.deck.splice(0,3);
-      state.passes=0;renderAll(true,'market');playSound('deal');showToast('Beide haben geschoben: 3 neue Karten!');
+      state.passes=0;
+      renderAll(!reduced,'market');
+      playSound('deal');showToast('Beide haben geschoben: 3 neue Karten!');
+      // Nicht vor Ende des Einfliegens erneut rendern, sonst verschwindet die Animation.
+      if(!reduced)await sleep(820);
+      return !!state&&state===session&&state.round===roundId;
     }
     function checkInstantWin(){
       const hs=scoreHand(state.hands.human),cs=scoreHand(state.hands.cpu);
@@ -668,8 +722,11 @@
       if(move.type==='pass'){
         state.selected=null;state.passes++;
         playSound('select');
-        if(state.passes===2)refreshMarket();
-        renderAll();await sleep(200);
+        if(state.passes===2){
+          if(!(await refreshMarket()))return;
+        }else{
+          renderAll();await sleep(200);
+        }
       }else{
         if(!(await performExchange('human',move)))return;
         if(!state||state!==session||state.round!==roundId)return;
@@ -766,8 +823,9 @@
       if(decision.type==='pass'){
         state.passes++;
         playSound('select');
-        if(state.passes===2)refreshMarket();
-        else showToast('Der Computer schiebt.');
+        if(state.passes===2){
+          if(!(await refreshMarket()))return;
+        }else showToast('Der Computer schiebt.');
       }else{
         if(!(await performExchange('cpu',decision)))return;
         if(!state||state!==session||state.round!==roundId)return;
@@ -787,7 +845,8 @@
       clearTimeout(toastTimer);$('toast').classList.remove('show');
       state.phase='round-end';state.selected=null;state.revealCpu=true;
       const h=scoreHand(state.hands.human),c=scoreHand(state.hands.cpu);
-      const result=h.points>c.points?'human':c.points>h.points?'cpu':'tie';
+      const comparison=compareScores(h,c);
+      const result=comparison>0?'human':comparison<0?'cpu':'tie';
       if(result!=='tie'){
         const loser=result==='human'?'cpu':'human';
         state.lives[loser]=Math.max(0,state.lives[loser]-1);state.wins[result]++;
@@ -805,7 +864,12 @@
       $('resultTitle').textContent=matchOver?(state.lives.human===0?'Match verloren.':'Match gewonnen!'):result==='human'?'Du gewinnst!':result==='cpu'?'Computer gewinnt.':'Gleichstand!';
       const special=h.type==='super'||c.type==='super'?((h.type==='super'?'Du hast':'Der Computer hat')+' drei Asse – Super-Knack!'):
         h.type==='knack'||c.type==='knack'?((h.type==='knack'?'Du hast':'Der Computer hat')+' 31 Punkte – Knack!'):'';
-      const mainReason=special||`${result==='tie'?'Ihr habt beide '+spokenScore(h):result==='human'?'Deine '+spokenScore(h)+' schlagen '+spokenScore(c):'Der Computer hat '+spokenScore(c)+', du hast '+spokenScore(h)}.`;
+      const decidedBySuit=h.points===c.points&&result!=='tie';
+      const mainReason=decidedBySuit
+        ?`Beide haben ${spokenScore(h)}. ${suitName(result==='human'?h.suit:c.suit)} schlägt ${suitName(result==='human'?c.suit:h.suit)} bei gleicher Punktzahl.`
+        :result==='tie'
+          ?`Ihr habt beide ${spokenScore(h)} und die gleiche stärkste Farbe (${suitName(h.suit)}).`
+          :special||`${result==='human'?'Deine '+spokenScore(h)+' schlagen '+spokenScore(c):'Der Computer hat '+spokenScore(c)+', du hast '+spokenScore(h)}.`;
       const livesReason=result==='tie'?'Niemand verliert ein Leben.':result==='human'?'Der Computer verliert ein Leben.':'Du verlierst ein Leben.';
       $('resultReason').textContent=mainReason+' '+(matchOver?'Das Match ist entschieden.':livesReason);
       $('nextRoundButton').textContent=matchOver?'Neues Spiel ↗':'Nächste Runde →';
